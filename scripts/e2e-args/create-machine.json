@@ -1,0 +1,26 @@
+{
+  "name": "TESTNET DEMO E2E Machine",
+  "description": "E2E script machine — FT rewards only",
+  "image_url": "https://example.com/nearmyst-e2e.png",
+  "payment_token": "ft.nearmyst.testnet",
+  "pack_price": "1000",
+  "max_packs": 3,
+  "tiers": [
+    { "tier": "Common", "probability_bps": 7000 },
+    { "tier": "Rare", "probability_bps": 3000 }
+  ],
+  "rewards": [
+    {
+      "token": "ft.nearmyst.testnet",
+      "amount_per_win": "100",
+      "tier": "Common",
+      "quantity": 2
+    },
+    {
+      "token": "ft.nearmyst.testnet",
+      "amount_per_win": "500",
+      "tier": "Rare",
+      "quantity": 1
+    }
+  ]
+}

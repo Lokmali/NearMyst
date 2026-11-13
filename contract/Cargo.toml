@@ -1,0 +1,40 @@
+[package]
+name = "nearmyst"
+description = "NearMyst — FT mystery-pack launchpad on NEAR (testnet demo)"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/Lokmali/NearMyst"
+license = "MIT OR Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = "5.30.1"
+near-contract-standards = "5.30.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+near-sdk = { version = "5.30.1", features = ["unit-testing"] }
+anyhow = "1.0"
+serde_json = "1"
+
+# Optional: `cargo test --features sandbox --test sandbox`
+# near-workspaces sandbox is macOS/Linux oriented; often fails to build on Windows.
+[target.'cfg(unix)'.dev-dependencies]
+near-workspaces = { version = "0.24.0", features = ["unstable"] }
+tokio = { version = "1.12", features = ["rt", "macros"] }
+
+[features]
+default = []
+sandbox = []
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true
+
