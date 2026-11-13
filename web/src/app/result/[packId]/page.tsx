@@ -169,6 +169,85 @@ function ResultInner() {
       )}
 
       <Card>
+        <h2 className="text-h3 text-primary">Verification timeline</h2>
+        <ol className="mt-4 space-y-3 text-small">
+          <li className="flex gap-3">
+            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-success" aria-hidden />
+            <div>
+              <div className="font-medium text-primary">Bought</div>
+              <div className="text-secondary">
+                Block {pack.purchased_at_block}
+              </div>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span
+              className={cn(
+                "mt-1 h-2 w-2 shrink-0 rounded-full",
+                result ? "bg-success" : "bg-border",
+              )}
+              aria-hidden
+            />
+            <div>
+              <div className="font-medium text-primary">Block gap</div>
+              <div className="text-secondary">
+                {result
+                  ? `Opened ${Number(result.opened_at_block) - Number(pack.purchased_at_block)} block(s) later`
+                  : "Open on a later block than purchase"}
+              </div>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span
+              className={cn(
+                "mt-1 h-2 w-2 shrink-0 rounded-full",
+                result ? "bg-success" : "bg-border",
+              )}
+              aria-hidden
+            />
+            <div>
+              <div className="font-medium text-primary">Opened</div>
+              <div className="text-secondary">
+                {result
+                  ? `Block ${result.opened_at_block}`
+                  : "Not opened yet"}
+              </div>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span
+              className={cn(
+                "mt-1 h-2 w-2 shrink-0 rounded-full",
+                pack.status === "Delivered" || pack.status === "PendingClaim"
+                  ? "bg-success"
+                  : "bg-border",
+              )}
+              aria-hidden
+            />
+            <div>
+              <div className="font-medium text-primary">Paid / claim</div>
+              <div className="text-secondary">
+                {packStatusLabel(pack.status)}
+                {txHash ? (
+                  <>
+                    {" · "}
+                    <a
+                      href={explorerTxUrl(txHash)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-brand hover:underline"
+                    >
+                      Explorer
+                    </a>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </li>
+        </ol>
+      </Card>
+
+      <Card>
         <h2 className="text-h3 text-primary">How was this decided?</h2>
         <p className="mt-2 text-small leading-relaxed text-secondary">
           When you open a pack, the machine picks a rarity using the published

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Capsule } from "@/components/brand/capsule";
 import { CopyButton } from "@/components/ui/copy-button";
 import { useMotionPreference } from "@/components/providers/motion-provider";
-import { GACHA_CONTRACT, NETWORK } from "@/lib/config";
+import { explorerAccountUrl, GACHA_CONTRACT, NETWORK } from "@/lib/config";
 
 export function Footer() {
   const { mode, toggle } = useMotionPreference();
@@ -57,8 +57,23 @@ export function Footer() {
               </a>
             </li>
             <li>
+              <a
+                href={explorerAccountUrl(GACHA_CONTRACT)}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-primary"
+              >
+                Contract on explorer
+              </a>
+            </li>
+            <li>
               <Link href="/#how" className="hover:text-primary">
                 How it works
+              </Link>
+            </li>
+            <li>
+              <Link href="/#faq" className="hover:text-primary">
+                FAQ
               </Link>
             </li>
           </ul>
@@ -89,6 +104,9 @@ export function Footer() {
             >
               Motion: {mode === "full" ? "Full" : "Reduced"}
             </button>
+            <p className="pt-2 text-caption text-muted">
+              Built for NEAR HACKATHON · testnet demo only
+            </p>
           </div>
         </div>
       </div>

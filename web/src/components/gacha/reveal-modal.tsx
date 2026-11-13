@@ -245,18 +245,27 @@ export function RevealModal({
             <Disclaimer className="mt-4">
               Testnet RNG only (not VRF). Mainnet needs VRF or an oracle.
             </Disclaimer>
-            <div className="mt-5 flex flex-col gap-2">
-              <Link href="/inventory" onClick={onClose}>
-                <Button className="w-full">View in inventory</Button>
-              </Link>
-              <Link href={verifyHref} onClick={onClose}>
-                <Button variant="secondary" className="w-full">
-                  How was this decided?
-                </Button>
-              </Link>
-              <Button variant="ghost" className="w-full" onClick={onClose}>
+            <p className="sr-only" aria-live="polite">
+              You won {result.tier} reward of {formatTokenAmount(result.amount)}{" "}
+              tokens.
+            </p>
+            <p className="mt-5 text-caption font-medium uppercase tracking-[0.12em] text-muted">
+              What next
+            </p>
+            <div className="mt-2 flex flex-col gap-2">
+              <Button className="w-full" onClick={onClose}>
                 Open another
               </Button>
+              <Link href="/inventory" onClick={onClose}>
+                <Button variant="secondary" className="w-full">
+                  View inventory
+                </Button>
+              </Link>
+              <Link href={verifyHref} onClick={onClose}>
+                <Button variant="ghost" className="w-full">
+                  Verify on-chain
+                </Button>
+              </Link>
             </div>
           </motion.div>
         )}

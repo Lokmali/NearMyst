@@ -35,6 +35,9 @@ export const metadata: Metadata = {
     template: "%s · NearMyst",
   },
   description: siteDescription,
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
   openGraph: {
     title: siteTitle,
     description: siteDescription,
@@ -45,6 +48,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
+  },
+  icons: {
+    icon: "/favicon.ico",
   },
 };
 
