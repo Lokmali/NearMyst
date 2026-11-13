@@ -10,7 +10,7 @@
 6. **Install Command:** `npm ci` (preferred) or `npm install`
 7. **Output:** leave Vercel Next.js defaults (do **not** set `NEXT_DIST_DIR` on Vercel)
 
-Local tip: while `npm run dev` is running, use `npm run build:isolated` so builds write to `.next-build` instead of clobbering `.next`. Vercel never needs that.
+Local tip: while `npm run dev` is running, use **`npm run build:local`** so builds write to `.next-build` instead of clobbering `.next`. Never run `npm run build` alongside a live `next dev`. Vercel never needs `NEXT_DIST_DIR`.
 
 ## Environment variables (public only)
 

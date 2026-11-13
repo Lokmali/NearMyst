@@ -55,7 +55,13 @@ export default function ExplorePage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = machines.filter((m) => {
-      if (status !== "All" && m.status !== status) return false;
+      // Visitors never see Draft machines (seed leftovers / unfinished creates).
+      if (m.status === "Draft") return false;
+      if (status === "All") {
+        /* Active + Paused */
+      } else if (m.status !== status) {
+        return false;
+      }
       if (!q) return true;
       return (
         m.name.toLowerCase().includes(q) ||
@@ -157,7 +163,7 @@ export default function ExplorePage() {
             role="group"
             aria-label="Status filter"
           >
-            {(["All", "Active", "Paused", "Draft"] as const).map((s) => (
+            {(["All", "Active", "Paused"] as const).map((s) => (
               <button
                 key={s}
                 type="button"

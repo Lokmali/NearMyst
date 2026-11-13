@@ -19,8 +19,8 @@ export default async function HomePage() {
 
   try {
     const [list] = await Promise.all([listMachines(0, 6), getConfig()]);
+    // Featured: Active only — never Draft/Paused fallbacks for visitors.
     machines = list.filter((m) => m.status === "Active").slice(0, 3);
-    if (machines.length === 0) machines = list.slice(0, 3);
   } catch (e) {
     loadError = e instanceof Error ? e.message : String(e);
   }

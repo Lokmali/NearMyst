@@ -90,7 +90,7 @@ npm run dev                     # http://localhost:3000
 | `NEXT_PUBLIC_EXPLORER_URL` | `https://testnet.nearblocks.io` |
 | `NEXT_PUBLIC_DEFAULT_PAYMENT_TOKEN` | `ft.nearmyst.testnet` |
 
-**Dev vs build:** `npm run build` uses the default `.next` directory (Vercel-compatible). While `next dev` is running, use `npm run build:isolated` (writes `.next-build`) so you do not clobber the dev cache. Never run a normal `npm run build` against the same `.next` as a live `next dev`.
+**Dev vs build:** `npm run build` uses the default `.next` directory (Vercel-compatible). For local verification while `next dev` may be running, use **`npm run build:local`** (writes `.next-build`). **Never run `npm run build` while `npm run dev` is running** — it overwrites `.next` and breaks CSS/JS (404).
 
 ### Deploy testnet (summary)
 
