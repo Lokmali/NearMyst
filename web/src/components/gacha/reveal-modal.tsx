@@ -167,15 +167,33 @@ export function RevealModal({
         ) : (
           <motion.div
             key="reveal"
-            initial={reduced ? false : { opacity: 0, scale: 0.94, rotateY: -18 }}
-            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-            transition={{ duration: 0.5, ease: ease.out }}
+            initial={
+              reduced
+                ? false
+                : {
+                    opacity: 0,
+                    scale:
+                      result.tier === "Mythic" || result.tier === "Legendary"
+                        ? 0.9
+                        : result.tier === "Epic"
+                          ? 0.93
+                          : 0.96,
+                    y: 12,
+                  }
+            }
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{
+              duration:
+                result.tier === "Mythic" || result.tier === "Legendary"
+                  ? duration.reveal
+                  : duration.slow,
+              ease: ease.out,
+            }}
             className={cn(
               "relative w-full max-w-md rounded-xl border bg-overlay p-6 shadow-overlay",
               rarityClass(result.tier, "edge"),
             )}
             onClick={(e) => e.stopPropagation()}
-            style={{ transformStyle: "preserve-3d" }}
           >
             {result.tier === "Legendary" && !reduced && (
               <span

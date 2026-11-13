@@ -6,6 +6,7 @@ import { Disclaimer } from "@/components/ui/disclaimer";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorPanel } from "@/components/ui/error-panel";
 import { FadeIn, Stagger, StaggerItem } from "@/components/motion/fade-in";
+import { HeroBackdrop } from "@/components/motion/hero-backdrop";
 import { OnboardingChecklist } from "@/components/ux/onboarding-checklist";
 import { getConfig, listMachines } from "@/lib/contract/client";
 import { Wallet, Package, Sparkles } from "lucide-react";
@@ -50,6 +51,7 @@ export default async function HomePage() {
       <OnboardingChecklist />
 
       <section className="relative grid items-center gap-10 lg:grid-cols-2">
+        <HeroBackdrop />
         <FadeIn>
           <p className="text-eyebrow">NearMyst · NEAR testnet demo</p>
           <h1 className="mt-3 text-display text-primary">

@@ -356,6 +356,60 @@ body {
 
 html.motion-reduced .animate-floaty,
 html.motion-reduced .animate-capsule-pulse,
-html.motion-reduced .skeleton-shimmer::after {
+html.motion-reduced .skeleton-shimmer::after,
+html.motion-reduced .hero-aurora-blob {
   animation: none !important;
+}
+
+/* Home hero aurora — opacity/transform only; paused via component when tab hidden */
+.hero-aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.35;
+  will-change: transform;
+}
+
+.hero-aurora-blob-a {
+  width: min(55vw, 420px);
+  height: min(55vw, 420px);
+  top: -8%;
+  left: -6%;
+  background: radial-gradient(circle, rgba(124, 108, 255, 0.55), transparent 70%);
+  animation: hero-aurora-drift-a 18s ease-in-out infinite;
+}
+
+.hero-aurora-blob-b {
+  width: min(45vw, 360px);
+  height: min(45vw, 360px);
+  top: 10%;
+  right: -4%;
+  background: radial-gradient(circle, rgba(91, 140, 255, 0.4), transparent 70%);
+  animation: hero-aurora-drift-b 22s ease-in-out infinite;
+}
+
+@keyframes hero-aurora-drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, 6%, 0) scale(1.08);
+  }
+}
+
+@keyframes hero-aurora-drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-5%, 4%, 0) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-aurora-blob {
+    animation: none !important;
+  }
 }

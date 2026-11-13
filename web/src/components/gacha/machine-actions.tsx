@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { OpeningOverlay, RevealModal } from "@/components/gacha/reveal-modal";
 import { StorageRegisterPanel } from "@/components/gacha/storage-register";
 import { GetTestTokensCard } from "@/components/ux/get-test-tokens";
+import { AnimatedNumber } from "@/components/motion/animated-number";
 import { PackFlowProgress, type PackFlowStep } from "@/components/ux/flow-progress";
 import { SpendSummary } from "@/components/ux/spend-summary";
 import { TxStatusPanel, type FriendlyTx } from "@/components/ux/tx-status";
@@ -621,7 +622,7 @@ export function MachineActions({
               {formatTokenAmount(machine.pack_price)} tokens / pack
             </div>
             <div className="truncate">
-              {machine.packs_remaining} left
+              <AnimatedNumber value={machine.packs_remaining} /> left
               {disabledReason ? ` · ${disabledReason}` : ""}
             </div>
           </div>
