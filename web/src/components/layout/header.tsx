@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useWalletSelector } from "@near-wallet-selector/react-hook";
 import { AnimatePresence, motion } from "motion/react";
-import { Menu, X, ExternalLink, Copy, Check, LogOut, Sparkles } from "lucide-react";
+import { Menu, X, ExternalLink, Copy, Check, LogOut, Sparkles, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Capsule } from "@/components/brand/capsule";
+import { ArcMark } from "@/components/brand/arc-mark";
 import { RouteIris } from "@/components/motion/route-iris";
 import { useMotionPreference } from "@/components/providers/motion-provider";
+import { useWalletReady } from "@/components/providers/wallet-provider";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { NETWORK, explorerAccountUrl } from "@/lib/config";
 import { formatNear, shortenAccount } from "@/lib/format";
 import { getAccountNearBalance } from "@/lib/contract/client";
@@ -23,9 +25,29 @@ const NAV = [
 ];
 
 export function Header() {
+  const walletsReady = useWalletReady();
+  if (!walletsReady) {
+    return <HeaderShell signedAccountId={null} signOut={async () => {}} />;
+  }
+  return <HeaderWithWallet />;
+}
+
+function HeaderWithWallet() {
+  const { signedAccountId, signOut } = useWalletSelector();
+  return (
+    <HeaderShell signedAccountId={signedAccountId} signOut={signOut} />
+  );
+}
+
+function HeaderShell({
+  signedAccountId,
+  signOut,
+}: {
+  signedAccountId: string | null;
+  signOut: () => Promise<void> | void;
+}) {
   const pathname = usePathname();
   const { reduced, mode, toggle } = useMotionPreference();
-  const { signedAccountId, signIn, signOut } = useWalletSelector();
   const [balance, setBalance] = useState<string | null>(null);
   const [balError, setBalError] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -115,8 +137,6 @@ export function Header() {
     }
   }
 
-  const initial = signedAccountId?.[0]?.toUpperCase() ?? "?";
-
   return (
     <>
       <RouteIris />
@@ -126,18 +146,19 @@ export function Header() {
           scrolled ? "glass-header shadow-card" : "border-b border-transparent bg-transparent",
         )}
       >
-        <div className="mx-auto flex h-full max-w-container items-center justify-between gap-4 px-4 md:px-6">
-          <div className="flex items-center gap-8">
+        <div className="page-wrap flex h-full items-center justify-between gap-3 md:gap-4">
+          <div className="flex min-w-0 items-center gap-5 md:gap-6">
             <Link
               href="/"
-              className="flex items-center gap-2 font-display text-lg font-bold tracking-wide text-primary transition hover:text-brand-hover"
+              className="flex h-9 shrink-0 items-center gap-2 font-display text-[0.9375rem] font-semibold leading-none tracking-tight text-primary transition hover:text-brand-hover"
             >
-              <Capsule size="sm" />
+              <ArcMark size={22} priority className="rounded-[6px]" />
               <span>
                 Near<span className="text-brand">Myst</span>
               </span>
             </Link>
-            <nav className="hidden items-center gap-1 text-small text-secondary md:flex">
+            {/* Near.com-style text links — shared height with right controls */}
+            <nav className="hidden items-center gap-0.5 text-small md:flex">
               {NAV.map((item) => {
                 const active =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -146,27 +167,22 @@ export function Header() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "relative rounded-md px-3 py-2 transition hover:text-primary",
-                      active ? "text-primary" : "text-muted",
+                      "inline-flex h-9 items-center rounded-full px-3.5 text-small font-medium leading-none transition duration-fast ease-out",
+                      active
+                        ? "bg-subtle text-primary"
+                        : "text-secondary hover:bg-subtle/70 hover:text-primary",
                     )}
                   >
                     {item.label}
-                    {active && (
-                      <motion.span
-                        layoutId={reduced ? undefined : "nav-underline"}
-                        className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-brand"
-                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                      />
-                    )}
                   </Link>
                 );
               })}
             </nav>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-subtle px-2.5 py-1 text-caption font-medium text-secondary">
-              <span className="h-1.5 w-1.5 rounded-full bg-info" aria-hidden />
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="hidden h-9 items-center gap-1.5 rounded-full border border-border bg-subtle/80 px-3 text-small font-medium leading-none text-secondary sm:inline-flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />
               {NETWORK === "testnet" ? "Testnet" : NETWORK}
             </span>
 
@@ -177,22 +193,20 @@ export function Header() {
                   size="sm"
                   aria-expanded={accountOpen}
                   aria-haspopup="menu"
+                  aria-label={`Account ${signedAccountId}`}
                   onClick={() => setAccountOpen((v) => !v)}
-                  className="hidden sm:inline-flex"
+                  className="hidden h-9 max-w-[14.5rem] px-3 text-small font-medium leading-none sm:inline-flex"
                 >
-                  <span
-                    className="flex h-6 w-6 items-center justify-center rounded-full bg-brand/20 text-caption font-semibold text-brand"
+                  <Wallet
+                    className="h-3.5 w-3.5 shrink-0 text-brand"
+                    strokeWidth={1.75}
                     aria-hidden
+                  />
+                  <span
+                    className="min-w-0 truncate leading-none tracking-tight"
+                    translate="no"
                   >
-                    {initial}
-                  </span>
-                  <span className="text-left">
-                    <span className="block text-caption font-semibold">
-                      {shortenAccount(signedAccountId, 5, 7)}
-                    </span>
-                    <span className="block text-[10px] font-normal text-muted tabular">
-                      {balError ? "balance error" : balance != null ? `${balance} Ⓝ` : "…"}
-                    </span>
+                    {shortenAccount(signedAccountId)}
                   </span>
                 </Button>
                 <AnimatePresence>
@@ -203,8 +217,24 @@ export function Header() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={reduced ? undefined : { opacity: 0, y: 4, scale: 0.98 }}
                       transition={{ duration: duration.fast, ease: ease.out }}
-                      className="absolute right-0 mt-2 w-60 overflow-hidden rounded-lg border border-border bg-overlay p-2 shadow-overlay"
+                      className="absolute right-0 mt-2 w-64 overflow-hidden rounded-lg border border-border bg-overlay p-2 shadow-overlay"
                     >
+                      <div className="mb-1 rounded-md px-3 py-2.5">
+                        <p
+                          className="truncate text-small font-medium text-primary"
+                          translate="no"
+                          title={signedAccountId}
+                        >
+                          {signedAccountId}
+                        </p>
+                        <p className="mt-0.5 text-caption tabular text-muted">
+                          {balError
+                            ? "Balance unavailable"
+                            : balance != null
+                              ? `${balance} Ⓝ`
+                              : "Loading balance…"}
+                        </p>
+                      </div>
                       <button
                         type="button"
                         role="menuitem"
@@ -257,13 +287,8 @@ export function Header() {
                 </AnimatePresence>
               </div>
             ) : (
-              <div className="hidden flex-col items-end sm:flex">
-                <Button size="sm" onClick={() => void signIn()}>
-                  Connect Wallet
-                </Button>
-                <span className="mt-0.5 max-w-[11rem] text-right text-[10px] leading-tight text-muted">
-                  Your login for NEAR
-                </span>
+              <div className="hidden sm:block">
+                <ConnectWalletButton size="sm" />
               </div>
             )}
 
@@ -310,6 +335,7 @@ export function Header() {
                     key={item.href}
                     href={item.href}
                     className="rounded-md px-3 py-3 text-body text-primary hover:bg-subtle"
+                    onClick={() => setMenuOpen(false)}
                   >
                     {item.label}
                   </Link>
@@ -324,18 +350,35 @@ export function Header() {
                 <div className="mt-auto space-y-2 border-t border-border p-3">
                   {signedAccountId ? (
                     <>
-                      <div className="text-caption text-muted">
-                        {shortenAccount(signedAccountId)} ·{" "}
-                        {balError ? "balance error" : balance != null ? `${balance} Ⓝ` : "…"}
+                      <div className="space-y-0.5 text-caption text-muted">
+                        <div className="truncate text-primary" translate="no">
+                          {signedAccountId}
+                        </div>
+                        <div className="tabular">
+                          {balError
+                            ? "Balance unavailable"
+                            : balance != null
+                              ? `${balance} Ⓝ`
+                              : "Loading balance…"}
+                        </div>
                       </div>
-                      <Button variant="secondary" className="w-full" onClick={() => void signOut()}>
+                      <Button
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          void signOut();
+                        }}
+                      >
                         Disconnect
                       </Button>
                     </>
                   ) : (
-                    <Button className="w-full" onClick={() => void signIn()}>
-                      Connect Wallet
-                    </Button>
+                    <ConnectWalletButton
+                      className="w-full"
+                      size="md"
+                      onClick={() => setMenuOpen(false)}
+                    />
                   )}
                 </div>
               </nav>

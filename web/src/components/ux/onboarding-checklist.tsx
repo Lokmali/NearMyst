@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useWalletSelector } from "@near-wallet-selector/react-hook";
 import { Check, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
+import { useWalletReady } from "@/components/providers/wallet-provider";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { DEFAULT_PAYMENT_TOKEN } from "@/lib/ux-copy";
+import { tokenSymbol } from "@/lib/format";
 import { ftBalanceOf, isFtRegistered } from "@/lib/contract/client";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +24,13 @@ export function markFirstPackBought() {
 }
 
 export function OnboardingChecklist() {
-  const { signedAccountId, signIn } = useWalletSelector();
+  const ready = useWalletReady();
+  if (!ready) return null;
+  return <OnboardingChecklistReady />;
+}
+
+function OnboardingChecklistReady() {
+  const { signedAccountId } = useWalletSelector();
   const [dismissed, setDismissed] = useState(true);
   const [tokenReady, setTokenReady] = useState(false);
   const [hasTokens, setHasTokens] = useState(false);
@@ -71,9 +79,7 @@ export function OnboardingChecklist() {
         done: !!signedAccountId,
         label: "Wallet connected",
         action: !signedAccountId ? (
-          <Button size="sm" onClick={() => signIn()}>
-            Connect
-          </Button>
+          <ConnectWalletButton size="sm">Connect</ConnectWalletButton>
         ) : null,
       },
       {
@@ -82,23 +88,19 @@ export function OnboardingChecklist() {
         label: "Account set up for the token",
         action:
           signedAccountId && !tokenReady ? (
-            <Link href="/explore">
-              <Button size="sm" variant="secondary">
-                Set up on a machine
-              </Button>
-            </Link>
+            <ButtonLink href="/explore" size="sm" variant="secondary">
+              Set up on a machine
+            </ButtonLink>
           ) : null,
       },
       {
         id: "tokens",
         done: hasTokens,
-        label: "Get test tokens",
+        label: `Get free ${tokenSymbol(DEFAULT_PAYMENT_TOKEN)}`,
         action: !hasTokens ? (
-          <Link href="/explore#get-tokens">
-            <Button size="sm" variant="secondary">
-              How to get tokens
-            </Button>
-          </Link>
+          <ButtonLink href="/explore#get-tokens" size="sm" variant="secondary">
+            How to get tokens
+          </ButtonLink>
         ) : null,
       },
       {
@@ -106,13 +108,13 @@ export function OnboardingChecklist() {
         done: bought,
         label: "Buy your first pack",
         action: !bought ? (
-          <Link href="/explore">
-            <Button size="sm">Explore machines</Button>
-          </Link>
+          <ButtonLink href="/explore" size="sm">
+            Explore machines
+          </ButtonLink>
         ) : null,
       },
     ],
-    [signedAccountId, tokenReady, hasTokens, bought, signIn],
+    [signedAccountId, tokenReady, hasTokens, bought],
   );
 
   const incomplete = steps.filter((s) => !s.done);
@@ -122,19 +124,19 @@ export function OnboardingChecklist() {
 
   return (
     <aside
-      className="mb-6 rounded-lg border border-brand/25 bg-brand-tint p-4"
+      className="mb-2 rounded-[var(--radius-md)] border border-border bg-raised p-5"
       aria-label="Getting started"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-h3 text-primary">Getting started</h2>
-          <p className="mt-1 text-caption text-secondary">
-            A few quick steps — this is a testnet demo with test tokens, not real money.
+          <p className="mt-1.5 text-small text-secondary">
+            Testnet demo with test tokens — not real money.
           </p>
         </div>
         <button
           type="button"
-          className="rounded-md p-2 text-muted transition hover:bg-subtle hover:text-primary"
+          className="min-h-11 min-w-11 rounded-[var(--radius-btn)] p-2 text-muted transition-colors hover:bg-subtle hover:text-primary"
           aria-label="Dismiss getting started"
           onClick={() => {
             try {
@@ -148,19 +150,19 @@ export function OnboardingChecklist() {
           <X className="h-4 w-4" strokeWidth={1.75} />
         </button>
       </div>
-      <ol className="mt-4 space-y-2">
+      <ol className="mt-5 divide-y divide-border border-t border-border">
         {steps.map((s) => (
           <li
             key={s.id}
             className={cn(
-              "flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 bg-raised/60 px-3 py-2.5",
-              s.done && "opacity-60",
+              "flex flex-wrap items-center justify-between gap-3 py-3",
+              s.done && "opacity-55",
             )}
           >
-            <div className="flex items-center gap-2 text-small text-primary">
+            <div className="flex items-center gap-2.5 text-small text-primary">
               <span
                 className={cn(
-                  "flex h-5 w-5 items-center justify-center rounded-full border",
+                  "flex h-5 w-5 items-center justify-center rounded-[var(--radius-btn)] border",
                   s.done
                     ? "border-success/40 bg-success-tint text-success"
                     : "border-border text-muted",

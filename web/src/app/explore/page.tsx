@@ -10,7 +10,7 @@ import { ErrorPanel } from "@/components/ui/error-panel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FadeIn } from "@/components/motion/fade-in";
-import { GetTestTokensCard } from "@/components/ux/get-test-tokens";
+import { GetTestTokensWhenNeeded } from "@/components/ux/get-test-tokens";
 import { useMotionPreference } from "@/components/providers/motion-provider";
 import { listMachines } from "@/lib/contract/client";
 import type { MachineStatus, MachineView } from "@/lib/types";
@@ -106,19 +106,19 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-wrap space-y-8 py-8 md:py-10">
       <FadeIn>
         <h1 className="text-h1 text-primary">Explore machines</h1>
-        <p className="mt-2 max-w-2xl prose-narrow text-small text-secondary">
-          Pick a machine, check the odds, and buy a mystery pack. Start with an
-          Active machine that still has packs left.
+        <p className="mt-3 max-w-2xl prose-narrow text-body text-secondary">
+          Pick a machine, check the odds, and buy a mystery pack. Prefer an
+          Active machine with packs left.
         </p>
       </FadeIn>
 
-      <GetTestTokensCard />
+      <GetTestTokensWhenNeeded />
 
-      <div className="sticky top-16 z-30 -mx-4 border-b border-border bg-base/90 px-4 py-3 backdrop-blur-md md:-mx-6 md:px-6">
-        <div className="mx-auto flex max-w-container flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="sticky top-16 z-30 border border-border bg-base/95 px-4 py-3 shadow-card backdrop-blur-md md:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
@@ -135,7 +135,7 @@ export default function ExplorePage() {
           <div
             role="group"
             aria-label="Sort"
-            className="inline-flex rounded-full border border-border bg-subtle p-1"
+            className="inline-flex rounded-[var(--radius-btn)] border border-border bg-subtle p-1"
           >
             {(
               [
@@ -148,7 +148,7 @@ export default function ExplorePage() {
                 type="button"
                 onClick={() => setSort(key)}
                 className={cn(
-                  "min-h-11 rounded-full px-3 text-caption font-medium transition",
+                  "min-h-11 rounded-[var(--radius-btn)] px-3 text-caption font-medium transition",
                   sort === key
                     ? "bg-raised text-primary shadow-card"
                     : "text-muted hover:text-secondary",
@@ -169,7 +169,7 @@ export default function ExplorePage() {
                 type="button"
                 onClick={() => setStatus(s)}
                 className={cn(
-                  "min-h-11 rounded-full border px-3 text-caption font-medium transition",
+                  "min-h-11 rounded-[var(--radius-btn)] border px-3 text-caption font-medium transition",
                   status === s
                     ? "border-brand/40 bg-brand/15 text-primary"
                     : "border-border text-muted hover:text-secondary",
@@ -181,13 +181,13 @@ export default function ExplorePage() {
           </div>
         </div>
         {chips.length > 0 && (
-          <div className="mx-auto mt-2 flex max-w-container flex-wrap items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             {chips.map((c) => (
               <button
                 key={c.key}
                 type="button"
                 onClick={c.clear}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-subtle px-3 text-caption text-secondary hover:text-primary"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-btn)] border border-border bg-subtle px-3 text-caption text-secondary hover:text-primary"
               >
                 {c.label}
                 <X className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
@@ -199,7 +199,7 @@ export default function ExplorePage() {
             </Button>
           </div>
         )}
-        <p className="mx-auto mt-2 max-w-container text-caption text-muted">
+        <p className="mt-2 text-caption text-muted">
           <span className="tabular">{filtered.length}</span> result
           {filtered.length === 1 ? "" : "s"}
         </p>

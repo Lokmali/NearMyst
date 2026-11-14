@@ -1,19 +1,20 @@
 # NearMyst — submission pack (paste-ready)
 
-Fill every `[USER: …]`, `[VERCEL_URL]`, `[REPO_URL]`, and `[DEMO_POST_URL]` before submitting.
+Fill the remaining team / demo-URL / X-post fields before the form deadline.
 
 ## Form fields
 
 | Field | Value |
 |-------|--------|
 | Project name | NearMyst |
-| Team lead | [USER: team lead name] |
-| Team size | [USER: team size] |
+| Team lead | _(your name)_ |
+| Team size | _(number)_ |
 | Tracks | Games With Real Economies; Open Innovation |
-| NEAR wallet (prizes) | [USER: prize wallet; check whether prizes are paid on mainnet] |
-| Repo | [REPO_URL] (expected: `https://github.com/Lokmali/NearMyst`) |
-| Live demo | [VERCEL_URL] |
-| Demo post (X) | [DEMO_POST_URL] |
+| NEAR wallet (prizes) | `nearmyst.testnet` _(confirm prize network)_ |
+| Repo | https://github.com/Lokmali/NearMyst |
+| Live demo | _(Vercel production URL after deploy — see [vercel.md](./vercel.md))_ |
+| Demo post (X) | _(link to https://x.com/Near_Myst post)_ |
+| Support | https://t.me/NearMyst |
 
 ## Description (≈1250 characters — within 20–2000)
 
@@ -26,22 +27,23 @@ Honest limits: randomness uses testnet `env::random_seed()` (not VRF); this is a
 ## X post draft
 
 ```
-Built at NEAR HACKATHON 🚀
+Built at NEAR HACKATHON
 
 NearMyst — on-chain mystery packs on NEAR testnet:
 • Creators publish odds + inventory-backed FT rewards
 • Buy → wait one block → open → verify on explorer
 
-Demo: [VERCEL_URL]
+Demo: (paste Vercel URL)
 Contract: app.nearmyst.testnet
-Repo: [REPO_URL]
+Repo: https://github.com/Lokmali/NearMyst
+Support: https://t.me/NearMyst
 
 @NEARProtocol #NEARHackathon
 ```
 
 ## What judges can verify in 2 minutes
 
-1. Open [VERCEL_URL] — Testnet badge + contract id `app.nearmyst.testnet`.
+1. Open the live demo — Testnet badge + contract id `app.nearmyst.testnet`.
 2. Explorer: https://testnet.nearblocks.io/address/app.nearmyst.testnet
 3. Clone → `cd contract && cargo test --lib` (47 tests).
 4. `cd web && npm ci && npm run build` with the five `NEXT_PUBLIC_*` values from `.env.example`.
@@ -52,4 +54,4 @@ Repo: [REPO_URL]
 - [ ] Repo is **public**
 - [ ] Vercel production URL works with wallet connect
 - [ ] Demo post is public and matches [DEMO_SCRIPT.md](./DEMO_SCRIPT.md)
-- [ ] Placeholders in README + this file are filled
+- [ ] Live demo URL is pasted into README + this file

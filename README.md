@@ -3,9 +3,10 @@
 **On-chain mystery packs for NEAR** — creators launch inventory-backed gacha machines with published odds; players buy packs with a NEP-141 FT, open them later, and receive FT rewards.
 
 > **TESTNET DEMO only. Not audited. Not for real money.**  
-> Live demo: **[VERCEL_URL]**  
+> Repo: **[https://github.com/Lokmali/NearMyst](https://github.com/Lokmali/NearMyst)**  
+> Live demo: deploy `web/` to Vercel ([docs/vercel.md](./docs/vercel.md)), then put the production URL here.  
 > Built for **NEAR HACKATHON** tracks: **Games With Real Economies**, **Open Innovation**.  
-> Built during the hackathon: **[USER: confirm start date and team]**
+> Social: [X @Near_Myst](https://x.com/Near_Myst) · [Telegram](https://t.me/NearMyst) (support)
 
 ## Who it is for
 
@@ -25,8 +26,8 @@ NEAR account model + NEP-141 `ft_transfer_call` gives a clean buy/deposit flow, 
 | Demo FT | [`ft.nearmyst.testnet`](https://testnet.nearblocks.io/address/ft.nearmyst.testnet) |
 | Seed creator | `creator.nearmyst.testnet` |
 | Owner / fee receiver | `nearmyst.testnet` |
-| Frontend | [VERCEL_URL] |
-| Repo | [REPO_URL] (expected `https://github.com/Lokmali/NearMyst`) |
+| Frontend | Vercel production URL (see [docs/vercel.md](./docs/vercel.md)) |
+| Repo | [https://github.com/Lokmali/NearMyst](https://github.com/Lokmali/NearMyst) |
 
 Screenshots: [docs/screenshots/](./docs/screenshots/) — home, home-mobile, explore, machine, create, inventory, result, 404.
 
@@ -55,7 +56,7 @@ RPC views (@near-js) ──read───────►         ▲
 | Frontend | Next.js 15 · React 19 · Tailwind 3.4 · Wallet Selector v10 · `motion` |
 | Scripts | PowerShell + bash seed / e2e (file-args, no keys in repo) |
 
-More: [docs/architecture.md](./docs/architecture.md) · [docs/smart-contracts.md](./docs/smart-contracts.md) · [docs/design-notes.md](./docs/design-notes.md)
+More: [docs/architecture.md](./docs/architecture.md) · [docs/smart-contracts.md](./docs/smart-contracts.md) · [docs/security.md](./docs/security.md)
 
 ## Run locally
 
@@ -121,7 +122,7 @@ Details: [docs/security.md](./docs/security.md) · [docs/mainnet-checklist.md](.
 
 - Contract: `cargo test --lib` (47 unit tests)
 - Web: `npm test`, `npm run lint`, `npm run build` / `build:local`
-- GitHub Actions: web + contract
+- GitHub Actions: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)
 
 ## Submission pack
 

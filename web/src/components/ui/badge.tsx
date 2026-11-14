@@ -21,7 +21,7 @@ export function StatusBadge({ status }: { status: MachineStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-caption font-medium tracking-wide",
+        "inline-flex min-h-7 items-center gap-1.5 rounded-[var(--radius-btn)] border px-2.5 py-0.5 text-caption font-medium",
         s.cls,
       )}
     >
@@ -43,7 +43,7 @@ export function TierBadge({ tier }: { tier: Tier }) {
   return (
     <span
       className={cn(
-        "inline-flex min-h-7 items-center gap-1 rounded-full border px-2.5 py-0.5 text-caption font-semibold tracking-wide",
+        "inline-flex min-h-7 items-center gap-1 rounded-[var(--radius-btn)] border px-2.5 py-0.5 text-caption font-semibold",
         rarityClass(tier, "bg"),
       )}
       title={tier}

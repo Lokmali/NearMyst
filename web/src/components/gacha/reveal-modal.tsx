@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import type { PackResult, Tier } from "@/lib/types";
-import { formatTokenAmount } from "@/lib/format";
+import { formatTokenAmount, formatWinHeadline, tokenSymbol } from "@/lib/format";
 import { TierBadge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Disclaimer } from "@/components/ui/disclaimer";
-import { Capsule } from "@/components/brand/capsule";
+import { MysteryTrunk } from "@/components/brand/mystery-trunk";
 import { useMotionPreference } from "@/components/providers/motion-provider";
-import { rarityClass } from "@/lib/rarity";
+import { rarityClass, RARITY_HEX } from "@/lib/rarity";
 import { cn } from "@/lib/utils";
 import { duration, ease } from "@/lib/motion";
 
@@ -25,10 +24,10 @@ function fireConfetti(tier: Tier) {
     const end = Date.now() + (strength === 4 ? 1400 : strength === 3 ? 1100 : 800);
     const colors =
       tier === "Mythic"
-        ? ["#fb7185", "#f43f5e", "#d946ef"]
+        ? ["#e85d4c", "#f7f0e4", "#e0b84a"]
         : tier === "Legendary"
-          ? ["#fbbf24", "#f59e0b", "#fff7ed"]
-          : ["#d946ef", "#7c6cff", "#38bdf8"];
+          ? ["#e0b84a", "#ebc868", "#f7f0e4"]
+          : ["#2dd4a8", "#e0b84a", "#5ba4c9"];
     const frame = () => {
       confetti({
         particleCount: strength === 2 ? 8 : strength * 4,
@@ -61,15 +60,18 @@ export function RevealModal({
 }) {
   const { reduced } = useMotionPreference();
   const [phase, setPhase] = useState<Phase>(reduced ? "reveal" : "drop");
+  const winLine = formatWinHeadline(result.amount, result.token);
+  const symbol = tokenSymbol(result.token);
+  const brass = RARITY_HEX[result.tier] ?? "#E0B84A";
 
   useEffect(() => {
     if (reduced) {
       setPhase("reveal");
       return;
     }
-    const t1 = window.setTimeout(() => setPhase("shake"), 350);
-    const t2 = window.setTimeout(() => setPhase("split"), 1050);
-    const t3 = window.setTimeout(() => setPhase("reveal"), 1300);
+    const t1 = window.setTimeout(() => setPhase("shake"), 400);
+    const t2 = window.setTimeout(() => setPhase("split"), 1400);
+    const t3 = window.setTimeout(() => setPhase("reveal"), 1850);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
@@ -119,48 +121,68 @@ export function RevealModal({
     ? `/result/${result.pack_id}?tx=${encodeURIComponent(txHash)}`
     : `/result/${result.pack_id}`;
 
+  const trunkMotion =
+    phase === "shake" ? "shake" : phase === "split" ? "open" : "idle";
+
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-[8px]",
-        result.tier === "Mythic" && phase === "reveal" && !reduced && "shadow-[inset_0_0_120px_rgba(251,113,133,0.18)]",
+        "fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/80 p-4 backdrop-blur-[8px]",
+        result.tier === "Mythic" &&
+          phase === "reveal" &&
+          !reduced &&
+          "shadow-[inset_0_0_120px_rgba(232,93,76,0.16)]",
       )}
       role="dialog"
       aria-modal="true"
       aria-label="Pack reveal"
       onClick={() => (phase === "reveal" ? onClose() : setPhase("reveal"))}
     >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse at 50% 40%, ${brass}33, transparent 55%)`,
+        }}
+      />
       <AnimatePresence mode="wait">
         {phase !== "reveal" ? (
           <motion.div
             key={phase}
-            initial={{ opacity: 0, y: -24, scale: 0.92 }}
+            initial={{ opacity: 0, y: -28, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.08 }}
+            exit={{ opacity: 0, scale: 1.06, y: -12 }}
             transition={{ duration: duration.base, ease: ease.out }}
-            className="flex flex-col items-center"
+            className="relative flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className={cn(
-                "relative",
-                phase === "shake" && "animate-pack-shake",
-                phase === "split" && "scale-110",
-              )}
-            >
+            <div className="relative">
               {(phase === "shake" || phase === "drop") && (
                 <span
                   aria-hidden
-                  className="absolute -inset-6 rounded-full border border-brand/40"
-                  style={{ animation: "capsule-pulse 0.9s ease-in-out infinite" }}
+                  className="absolute -inset-10 rounded-full border border-brand/40"
+                  style={{
+                    boxShadow: `0 0 48px ${brass}55`,
+                    animation: "trunk-pulse 0.85s ease-in-out infinite",
+                  }}
                 />
               )}
-              <Capsule size="xl" open={phase === "split"} />
+              <MysteryTrunk
+                size="xl"
+                tier={result.tier}
+                open={phase === "split"}
+                motion={trunkMotion}
+              />
             </div>
-            <p className="mt-5 text-small text-secondary" aria-live="polite">
-              Revealing on-chain result…
+            <p className="mt-6 font-display text-h3 text-primary" aria-live="polite">
+              {phase === "shake"
+                ? "Trunk shaking…"
+                : phase === "split"
+                  ? "Lid opening…"
+                  : "Mystery trunk"}
             </p>
-            <Button variant="ghost" className="mt-3" onClick={() => setPhase("reveal")}>
+            <p className="mt-2 text-small text-secondary">Revealing on-chain result…</p>
+            <Button variant="ghost" className="mt-4" onClick={() => setPhase("reveal")}>
               Skip
             </Button>
           </motion.div>
@@ -172,16 +194,15 @@ export function RevealModal({
                 ? false
                 : {
                     opacity: 0,
-                    scale:
-                      result.tier === "Mythic" || result.tier === "Legendary"
-                        ? 0.9
-                        : result.tier === "Epic"
-                          ? 0.93
-                          : 0.96,
-                    y: 12,
+                    clipPath: "circle(0% at 50% 50%)",
+                    scale: 0.96,
                   }
             }
-            animate={{ opacity: 1, scale: 1, y: 0 }}
+            animate={{
+              opacity: 1,
+              clipPath: "circle(150% at 50% 50%)",
+              scale: 1,
+            }}
             transition={{
               duration:
                 result.tier === "Mythic" || result.tier === "Legendary"
@@ -190,45 +211,46 @@ export function RevealModal({
               ease: ease.out,
             }}
             className={cn(
-              "relative w-full max-w-md rounded-xl border bg-overlay p-6 shadow-overlay",
+              "relative w-full max-w-md rounded-[var(--radius-lg)] border bg-overlay p-6 shadow-overlay",
               rarityClass(result.tier, "edge"),
             )}
             onClick={(e) => e.stopPropagation()}
           >
-            {result.tier === "Legendary" && !reduced && (
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 -z-10 opacity-40"
-                style={{
-                  background:
-                    "conic-gradient(from 90deg, transparent, rgba(251,191,36,0.35), transparent 40%)",
-                }}
-              />
-            )}
-            <p className="text-eyebrow text-muted">You won</p>
-            <div className="mt-3 flex items-center gap-3">
-              <TierBadge tier={result.tier} />
-              <h2 className={cn("text-h2", rarityClass(result.tier))}>
-                {result.tier} reward
-              </h2>
+            <div className="mb-5 flex justify-center">
+              <MysteryTrunk size="lg" tier={result.tier} open motion="open" />
             </div>
-            <dl className="mt-5 space-y-3 text-small text-secondary">
-              <div className="flex justify-between gap-4">
-                <dt>Amount</dt>
-                <dd className="text-h3 tabular text-primary">
-                  {formatTokenAmount(result.amount)} tokens
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt>Token</dt>
-                <dd className="max-w-[60%] truncate mono-id text-muted">{result.token}</dd>
-              </div>
-            </dl>
-            <details className="mt-4 text-caption text-muted">
+            <p className="text-center text-small text-muted">You won</p>
+            <motion.p
+              className={cn(
+                "mt-2 text-center font-display text-display tabular leading-none",
+                rarityClass(result.tier),
+              )}
+              initial={reduced ? false : { opacity: 0, y: 12, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: reduced ? 0 : 0.12, duration: duration.slow, ease: ease.out }}
+            >
+              {formatTokenAmount(result.amount)}
+              <span className="ml-2 text-[0.55em] font-semibold tracking-tight text-brand">
+                {symbol}
+              </span>
+            </motion.p>
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <TierBadge tier={result.tier} />
+              <span className="text-small text-secondary">{result.tier} reward</span>
+            </div>
+            <details className="mt-5 text-caption text-muted">
               <summary className="cursor-pointer hover:text-secondary">
                 Technical details
               </summary>
               <div className="mt-2 space-y-2">
+                <div className="flex justify-between gap-4">
+                  <span>Token</span>
+                  <span className="max-w-[60%] truncate mono-id text-primary">{result.token}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Amount</span>
+                  <span className="tabular text-primary">{formatTokenAmount(result.amount)}</span>
+                </div>
                 <div className="flex justify-between gap-4">
                   <span>Reward id</span>
                   <span className="tabular text-primary">{result.reward_id}</span>
@@ -246,26 +268,29 @@ export function RevealModal({
               Testnet RNG only (not VRF). Mainnet needs VRF or an oracle.
             </Disclaimer>
             <p className="sr-only" aria-live="polite">
-              You won {result.tier} reward of {formatTokenAmount(result.amount)}{" "}
-              tokens.
+              You won {winLine}, {result.tier} reward.
             </p>
-            <p className="mt-5 text-caption font-medium uppercase tracking-[0.12em] text-muted">
-              What next
-            </p>
+            <p className="mt-5 text-small font-medium text-muted">What next</p>
             <div className="mt-2 flex flex-col gap-2">
               <Button className="w-full" onClick={onClose}>
                 Open another
               </Button>
-              <Link href="/inventory" onClick={onClose}>
-                <Button variant="secondary" className="w-full">
-                  View inventory
-                </Button>
-              </Link>
-              <Link href={verifyHref} onClick={onClose}>
-                <Button variant="ghost" className="w-full">
-                  Verify on-chain
-                </Button>
-              </Link>
+              <ButtonLink
+                href="/inventory"
+                variant="secondary"
+                className="w-full"
+                onClick={onClose}
+              >
+                View inventory
+              </ButtonLink>
+              <ButtonLink
+                href={verifyHref}
+                variant="ghost"
+                className="w-full"
+                onClick={onClose}
+              >
+                Verify on-chain
+              </ButtonLink>
             </div>
           </motion.div>
         )}
@@ -285,12 +310,12 @@ export function OpeningOverlay({ label }: { label: string }) {
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[8px]"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[8px]"
       role="status"
       aria-live="polite"
     >
       <div className="flex flex-col items-center rounded-xl border border-border bg-overlay px-8 py-7 shadow-overlay">
-        <Capsule size="lg" pulsing tint="#7C6CFF" />
+        <MysteryTrunk size="lg" motion="shake" pulsing />
         <p className="mt-4 text-small text-secondary">{label || "Opening your pack…"}</p>
         <p className="mt-1 text-caption text-muted">
           Waiting for the chain — no outcome yet.

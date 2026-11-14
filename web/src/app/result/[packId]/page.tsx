@@ -6,14 +6,14 @@ import { useParams, useSearchParams } from "next/navigation";
 import { TierBadge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { ErrorPanel } from "@/components/ui/error-panel";
 import { Tooltip } from "@/components/ui/tooltip";
 import { getPack, getPackResult } from "@/lib/contract/client";
 import { explorerTxUrl } from "@/lib/config";
-import { formatTokenAmount } from "@/lib/format";
+import { formatTokenAmount, formatWinHeadline, tokenSymbol } from "@/lib/format";
 import { packStatusLabel } from "@/lib/ux-copy";
 import { recallPackTx } from "@/lib/tx";
 import type { Pack, PackResult } from "@/lib/types";
@@ -118,7 +118,7 @@ function ResultInner() {
   const randomRef = result?.random_ref ?? pack.random_ref;
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className="page-wrap mx-auto max-w-xl space-y-8 py-8 md:py-10">
       <div>
         <Link
           href="/inventory"
@@ -126,33 +126,39 @@ function ResultInner() {
         >
           ← Inventory
         </Link>
-        <h1 className="mt-3 text-h1 text-primary">
+        <h1 className="mt-6 text-h1 text-primary">
           {result ? "Your reward" : "Pack details"}
         </h1>
-        <p className="mt-2 text-small text-secondary">
+        <p className="mt-3 text-body text-secondary">
           Pack #{pack.id} · {packStatusLabel(pack.status)}
         </p>
       </div>
 
       {result ? (
         <Card className="text-center">
-          <p className="text-eyebrow text-muted">You won</p>
+          <p className="text-small text-muted">You won</p>
           <div className="mt-3 flex justify-center">
             <TierBadge tier={result.tier} />
           </div>
-          <p className="mt-4 text-h2 tabular text-primary">
-            {formatTokenAmount(result.amount)} tokens
+          <p className="mt-4 font-display text-display tabular leading-none text-primary">
+            {formatTokenAmount(result.amount)}
+            <span className="ml-2 text-[0.55em] font-semibold text-brand">
+              {tokenSymbol(result.token)}
+            </span>
           </p>
-          <p className="mt-2 mono-id break-all text-caption text-muted">
+          <p className="mt-3 mono-id break-all text-caption text-muted">
             {result.token}
           </p>
+          <p className="sr-only">
+            {formatWinHeadline(result.amount, result.token)}
+          </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link href="/inventory">
-              <Button variant="secondary">View in inventory</Button>
-            </Link>
-            <Link href={`/machine/${pack.machine_id}`}>
-              <Button>Open another</Button>
-            </Link>
+            <ButtonLink href="/inventory" variant="secondary">
+              View in inventory
+            </ButtonLink>
+            <ButtonLink href={`/machine/${pack.machine_id}`}>
+              Open another
+            </ButtonLink>
           </div>
         </Card>
       ) : (
@@ -161,9 +167,7 @@ function ResultInner() {
             This pack hasn’t been opened yet, or the reward isn’t available.
           </p>
           <div className="mt-4">
-            <Link href="/inventory">
-              <Button>Go to inventory</Button>
-            </Link>
+            <ButtonLink href="/inventory">Go to inventory</ButtonLink>
           </div>
         </Card>
       )}

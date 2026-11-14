@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useWalletSelector } from "@near-wallet-selector/react-hook";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TierBadge, StatusBadge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
@@ -32,6 +32,7 @@ import {
 import { getConfig } from "@/lib/contract/client";
 import type { PlatformConfig } from "@/lib/types";
 import { humanError, packStatusLabel } from "@/lib/ux-copy";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 
 type PackRow = {
   pack: Pack;
@@ -218,11 +219,11 @@ export default function InventoryPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="page-wrap space-y-8 py-8 md:py-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-h1 text-primary">Your inventory</h1>
-          <p className="mt-2 text-small text-secondary">
+          <p className="mt-3 max-w-xl text-body text-secondary">
             Open packs, claim rewards waiting for you, and manage machines you
             created.
           </p>
@@ -238,7 +239,7 @@ export default function InventoryPage() {
         <EmptyState
           title="Connect your wallet"
           description="A wallet is your login for NEAR. Once connected, your packs and machines appear here."
-          action={<Button onClick={() => signIn()}>Connect Wallet</Button>}
+          action={<ConnectWalletButton size="md" />}
         />
       )}
 
@@ -272,14 +273,10 @@ export default function InventoryPage() {
             onChange={setTab}
             layoutId="inventory-tabs"
             tabs={[
-              { id: "unopened", label: "Ready to open", count: unopened.length },
-              {
-                id: "pending",
-                label: "Waiting for you",
-                count: pending.length,
-              },
+              { id: "unopened", label: "Ready", count: unopened.length },
+              { id: "pending", label: "Waiting", count: pending.length },
               { id: "opened", label: "Opened", count: opened.length },
-              { id: "machines", label: "My machines", count: created.length },
+              { id: "machines", label: "Machines", count: created.length },
             ]}
           />
 
@@ -290,9 +287,7 @@ export default function InventoryPage() {
                   title="No packs ready to open"
                   description="Buy a pack from Explore to get started."
                   action={
-                    <Link href="/explore">
-                      <Button>Explore machines</Button>
-                    </Link>
+                    <ButtonLink href="/explore">Explore machines</ButtonLink>
                   }
                 />
               )}
@@ -390,9 +385,9 @@ export default function InventoryPage() {
                   title="No opened packs yet"
                   description="Open a pack to see your rewards here."
                   action={
-                    <Link href="/explore">
-                      <Button variant="secondary">Explore machines</Button>
-                    </Link>
+                    <ButtonLink href="/explore" variant="secondary">
+                      Explore machines
+                    </ButtonLink>
                   }
                 />
               )}
@@ -443,9 +438,7 @@ export default function InventoryPage() {
                   title="No machines yet"
                   description="Create a machine to manage pause and earnings here."
                   action={
-                    <Link href="/create">
-                      <Button>Create machine</Button>
-                    </Link>
+                    <ButtonLink href="/create">Create machine</ButtonLink>
                   }
                 />
               )}

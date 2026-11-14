@@ -1,11 +1,17 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
-export const runtime = "edge";
 export const alt = "NearMyst — Mystery packs on NEAR testnet";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpenGraphImage() {
+const logoData = readFile(join(process.cwd(), "public/brand/logo-v2.png"));
+
+export default async function OpenGraphImage() {
+  const logo = await logoData;
+  const logoSrc = `data:image/png;base64,${Buffer.from(logo).toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -16,9 +22,9 @@ export default function OpenGraphImage() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: 64,
-          background: "#0A0A12",
-          color: "#F5F5FA",
-          fontFamily: "sans-serif",
+          background: "#0C0A08",
+          color: "#F7F0E4",
+          fontFamily: "serif",
           position: "relative",
         }}
       >
@@ -31,25 +37,24 @@ export default function OpenGraphImage() {
             bottom: 0,
             display: "flex",
             background:
-              "radial-gradient(ellipse at 20% 0%, rgba(124,108,255,0.35), transparent 50%)",
+              "radial-gradient(ellipse at 20% 0%, rgba(224,184,74,0.32), transparent 50%)",
           }}
         />
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: 20,
             position: "relative",
           }}
         >
-          <div
-            style={{
-              width: 48,
-              height: 72,
-              borderRadius: 24,
-              display: "flex",
-              background: "linear-gradient(180deg, #7C6CFF 0%, #5B8CFF 100%)",
-            }}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoSrc}
+            width={72}
+            height={72}
+            style={{ borderRadius: 16 }}
+            alt=""
           />
           <div style={{ display: "flex", fontSize: 36, fontWeight: 700 }}>
             NearMyst
@@ -79,7 +84,7 @@ export default function OpenGraphImage() {
             style={{
               display: "flex",
               fontSize: 28,
-              color: "#A9A9BC",
+              color: "#C4B5A0",
               maxWidth: 720,
             }}
           >
@@ -90,7 +95,7 @@ export default function OpenGraphImage() {
           style={{
             display: "flex",
             fontSize: 22,
-            color: "#70708A",
+            color: "#8A7D6C",
             position: "relative",
           }}
         >

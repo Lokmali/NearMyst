@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useWalletSelector } from "@near-wallet-selector/react-hook";
 import { toast } from "sonner";
+import { useWalletReady } from "@/components/providers/wallet-provider";
 import { explorerTxUrl } from "@/lib/config";
 import {
   finalizeFtRegistrationFromPending,
@@ -18,6 +19,12 @@ import { verifyTxOnChain } from "@/lib/tx";
  * Also completes pending FT storage_deposit registrations after remount.
  */
 export function TxReturnHandler() {
+  const ready = useWalletReady();
+  if (!ready) return null;
+  return <TxReturnHandlerReady />;
+}
+
+function TxReturnHandlerReady() {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -76,7 +83,6 @@ export function TxReturnHandler() {
                 onClick: () => window.open(explorerTxUrl(h), "_blank"),
               },
             });
-            // Nudge pages that show registration UI.
             window.dispatchEvent(new Event("nearmyst:ft-reg-updated"));
           } else {
             toast.success("Transaction confirmed on-chain", {

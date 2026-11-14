@@ -1,6 +1,6 @@
 # NearMyst web
 
-Next.js 15 App Router frontend for the NearMyst NEAR testnet demo. Dark, calm UI with Space Grotesk + Inter, brand `#7C6CFF`, and Capsule motif.
+Next.js 15 App Router frontend for the NearMyst NEAR testnet demo. Warm lottery-night UI with Fraunces + Source Sans 3, brass `#E0B84A`, and Mystery Trunk motif.
 
 Design tokens and component rules: [../docs/ui-design-system.md](../docs/ui-design-system.md)
 

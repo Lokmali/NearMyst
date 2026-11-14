@@ -8,17 +8,31 @@ import { StatusBadge, TierBadge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Capsule } from "@/components/brand/capsule";
 import { useMotionPreference } from "@/components/providers/motion-provider";
-import { formatTokenAmount, shortenAccount } from "@/lib/format";
+import { formatTokenAmount, shortenAccount, tokenSymbol } from "@/lib/format";
 import { highestTier } from "@/lib/odds";
 import { RARITY_HEX, rarityClass } from "@/lib/rarity";
 import { cn } from "@/lib/utils";
 import { duration, ease } from "@/lib/motion";
 
+function isUsableImageUrl(url: string | null | undefined) {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    // Seed placeholders / blocked hosts — show Capsule instead of empty frame
+    if (u.hostname === "example.com" || u.hostname.endsWith(".example")) {
+      return false;
+    }
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function MachineCard({ machine }: { machine: MachineView }) {
   const top = highestTier(machine);
   const { reduced } = useMotionPreference();
-  const [imgFailed, setImgFailed] = useState(!machine.image_url);
-  const tint = top ? RARITY_HEX[top] : "#7C6CFF";
+  const [imgFailed, setImgFailed] = useState(!isUsableImageUrl(machine.image_url));
+  const tint = top ? RARITY_HEX[top] : "#E0B84A";
 
   return (
     <motion.div
@@ -27,13 +41,13 @@ export function MachineCard({ machine }: { machine: MachineView }) {
     >
       <Link
         href={`/machine/${machine.id}`}
-        className="group relative block overflow-hidden rounded-lg border border-border bg-raised shadow-card transition duration-fast hover:border-border-strong"
+        className="group relative block overflow-hidden rounded-[var(--radius-md)] border border-border bg-raised/40 shadow-card backdrop-blur-sm transition-[border-color,transform,box-shadow] duration-fast hover:border-border-strong"
       >
         <div className="relative aspect-[4/3] overflow-hidden border-b border-border bg-subtle">
-          {!imgFailed && machine.image_url ? (
+          {!imgFailed && isUsableImageUrl(machine.image_url) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={machine.image_url}
+              src={machine.image_url!}
               alt=""
               className="h-full w-full object-cover transition duration-slow group-hover:scale-[1.03]"
               onError={() => setImgFailed(true)}
@@ -42,7 +56,7 @@ export function MachineCard({ machine }: { machine: MachineView }) {
             <div
               className="flex h-full w-full items-center justify-center"
               style={{
-                background: `linear-gradient(145deg, ${tint}22 0%, #0F0F1A 55%, #0A0A12 100%)`,
+                background: `linear-gradient(145deg, ${tint}22 0%, #16120E 55%, #0C0A08 100%)`,
               }}
               aria-hidden
             >
@@ -69,7 +83,8 @@ export function MachineCard({ machine }: { machine: MachineView }) {
             <div>
               <div className="text-caption text-muted">Price</div>
               <div className="font-medium tabular text-primary">
-                {formatTokenAmount(machine.pack_price)} tokens
+                {formatTokenAmount(machine.pack_price)}{" "}
+                {tokenSymbol(machine.payment_token)}
               </div>
             </div>
             <div>

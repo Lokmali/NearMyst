@@ -3,7 +3,7 @@
 /**
  * Lightweight CSS aurora for the home hero.
  * Inspired by the calm gradient/aurora feel of Componentry-style heroes —
- * implemented in-house (no three.js / WebGL). Brand violet #7C6CFF.
+ * implemented in-house (no three.js / WebGL). Brand brass #E0B84A.
  * Lazy-friendly: client-only; paused when tab hidden; static on mobile /
  * reduced-motion / low-power.
  */
@@ -63,7 +63,7 @@ export function HeroAurora({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(124,108,255,0.22),transparent_55%),radial-gradient(ellipse_at_90%_10%,rgba(91,140,255,0.14),transparent_50%),radial-gradient(ellipse_at_50%_100%,rgba(124,108,255,0.08),transparent_45%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(224,184,74,0.18),transparent_55%),radial-gradient(ellipse_at_90%_10%,rgba(91,164,201,0.12),transparent_50%),radial-gradient(ellipse_at_50%_100%,rgba(224,184,74,0.08),transparent_45%)]" />
       {animate ? (
         <>
           <div className="hero-aurora-blob hero-aurora-blob-a" />

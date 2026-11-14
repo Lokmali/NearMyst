@@ -1,13 +1,17 @@
 "use client";
 
-import { useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMotionPreference } from "@/components/providers/motion-provider";
+import { SOCIAL_TELEGRAM_URL, SOCIAL_X_URL } from "@/lib/config";
 import { duration, ease } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-const ITEMS = [
+const faqLinkClass =
+  "font-medium text-brand underline-offset-2 hover:text-brand-hover hover:underline";
+
+const ITEMS: { q: string; a: ReactNode }[] = [
   {
     q: "Is this real money?",
     a: "No. NearMyst on this demo is NEAR testnet with free test tokens. Do not send real funds.",
@@ -25,8 +29,27 @@ const ITEMS = [
     a: "If the reward FT transfer fails, your pack becomes a PendingClaim. Re-register on the FT if needed, then use Claim — the UI labels this “Reward waiting for you.”",
   },
   {
-    q: "Do I need a wallet? How do I get test tokens?",
-    a: "Yes — a NEAR testnet wallet is your login. Use the Get test tokens / seed script guidance on the site so a teammate can fund your account with demo FT.",
+    q: "Do I need a wallet? How do I get play tokens?",
+    a: "Yes — connect a NEAR testnet wallet. Copy your account id, ask the demo host to send free play tokens, and use the public NEAR faucet if you need a little testnet NEAR for fees.",
+  },
+  {
+    q: "Can I use my own meme token?",
+    a: (
+      <>
+        Yes. Create a token at{" "}
+        <a
+          href="https://meme.cooking/"
+          target="_blank"
+          rel="noreferrer"
+          className={faqLinkClass}
+        >
+          meme.cooking
+        </a>
+        , then paste its NEAR account id into Payment token or reward Token on
+        the Create page. Any NEAR token works. Demo machines often use
+        ft.nearmyst.testnet ($myst).
+      </>
+    ),
   },
   {
     q: "How do creators earn?",
@@ -36,7 +59,34 @@ const ITEMS = [
     q: "What is not production-ready?",
     a: "Testnet randomness (not VRF), demo FT, and no formal audit. Mainnet would need VRF or an oracle, a real NEP-141, an audit, and legal review.",
   },
-] as const;
+  {
+    q: "Where can I get support?",
+    a: (
+      <>
+        Join the NearMyst{" "}
+        <a
+          href={SOCIAL_TELEGRAM_URL}
+          target="_blank"
+          rel="noreferrer"
+          className={faqLinkClass}
+        >
+          Telegram
+        </a>{" "}
+        — that’s the best place for help with the testnet demo. Updates also
+        post on{" "}
+        <a
+          href={SOCIAL_X_URL}
+          target="_blank"
+          rel="noreferrer"
+          className={faqLinkClass}
+        >
+          X
+        </a>
+        .
+      </>
+    ),
+  },
+];
 
 export function FaqAccordion() {
   const baseId = useId();
@@ -44,7 +94,7 @@ export function FaqAccordion() {
   const { reduced } = useMotionPreference();
 
   return (
-    <div className="divide-y divide-border rounded-lg border border-border bg-raised">
+    <div className="divide-y divide-border rounded-[var(--radius-md)] border border-border bg-raised">
       {ITEMS.map((item, i) => {
         const isOpen = open === i;
         const panelId = `${baseId}-panel-${i}`;

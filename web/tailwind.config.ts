@@ -27,7 +27,7 @@ export default {
           hover: "var(--accent-hover)",
           pressed: "var(--accent-pressed)",
           tint: "var(--accent-tint)",
-          blue: "#5b8cff",
+          blue: "#5ba4c9",
         },
         success: {
           DEFAULT: "var(--success)",

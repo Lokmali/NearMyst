@@ -12,20 +12,20 @@ export function RarityStrip({ machine }: { machine: MachineView }) {
         <h2 id="what-win-heading" className="text-h2 text-primary">
           What can I win?
         </h2>
-        <p className="mt-1 text-small text-secondary">
-          Real odds from featured machine #{machine.id} — label + percentage, not
-          color alone.
+        <p className="mt-2 max-w-xl text-small text-secondary">
+          Real odds from featured machine #{machine.id} — label and percentage,
+          not color alone.
         </p>
       </FadeIn>
-      <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="mt-8 divide-y divide-border border-y border-border">
         {rows.map((r) => (
           <li
             key={r.tier}
-            className="flex items-center justify-between gap-3 rounded-lg border border-border bg-raised px-4 py-3 shadow-card"
+            className="flex items-center justify-between gap-3 py-3.5"
           >
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2.5">
               <TierBadge tier={r.tier} />
-              <span className="truncate text-small text-primary">{r.tier}</span>
+              <span className="truncate text-body text-primary">{r.tier}</span>
             </div>
             <span className="tabular text-small font-medium text-secondary">
               {r.label}

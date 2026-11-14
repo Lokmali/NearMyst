@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useWalletSelector } from "@near-wallet-selector/react-hook";
+import { useWalletReady } from "@/components/providers/wallet-provider";
 import { NETWORK } from "@/lib/config";
 
 /**
@@ -9,6 +10,12 @@ import { NETWORK } from "@/lib/config";
  * Selector is configured for NETWORK; this catches .near accounts on a testnet build.
  */
 export function NetworkMismatchBanner() {
+  const ready = useWalletReady();
+  if (!ready) return null;
+  return <NetworkMismatchBannerReady />;
+}
+
+function NetworkMismatchBannerReady() {
   const { signedAccountId } = useWalletSelector();
   const [show, setShow] = useState(false);
 
@@ -17,7 +24,8 @@ export function NetworkMismatchBanner() {
       setShow(false);
       return;
     }
-    const isMainnetAccount = signedAccountId.endsWith(".near") &&
+    const isMainnetAccount =
+      signedAccountId.endsWith(".near") &&
       !signedAccountId.endsWith(".testnet");
     const isTestnetAccount =
       signedAccountId.endsWith(".testnet") ||
