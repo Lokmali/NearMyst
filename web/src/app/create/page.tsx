@@ -75,11 +75,14 @@ type Step =
 async function waitForDepositsFunded(
   machineId: number,
   onTick?: (attempt: number, deposited: number, need: number) => void,
+  signal?: { cancelled: boolean },
 ): Promise<boolean> {
-  const maxAttempts = 40; // ~90s with backoff
+  const maxAttempts = 24; // ~40s — then surface Retry (don't feel stuck forever)
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const delay = attempt < 5 ? 1500 : attempt < 15 ? 2000 : 3000;
+    if (signal?.cancelled) return false;
+    const delay = attempt < 8 ? 1200 : 2000;
     await new Promise((r) => setTimeout(r, delay));
+    if (signal?.cancelled) return false;
     try {
       const m = await getMachine(machineId);
       if (!m) continue;
@@ -98,11 +101,49 @@ async function waitForDepositsFunded(
 }
 
 const flowSteps = [
-  { id: "create", label: "Basics" },
-  { id: "deposit", label: "Rewards" },
-  { id: "verify", label: "Deposit" },
+  { id: "create", label: "Create" },
+  { id: "deposit", label: "Deposit" },
+  { id: "verify", label: "Confirm" },
   { id: "activate", label: "Activate" },
 ] as const;
+
+const PENDING_KEY = "nearmyst-create-pending-v1";
+
+type PendingDepositLine = {
+  index: number;
+  token: string;
+  amount: string;
+  tier: string;
+};
+
+type PendingCreate = {
+  machineId: number;
+  nextDepositIndex: number;
+  deposits: PendingDepositLine[];
+  hashes: string[];
+  phase: "deposit" | "verify" | "activate";
+};
+
+function readPending(): PendingCreate | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PendingCreate;
+  } catch {
+    return null;
+  }
+}
+
+function writePending(p: PendingCreate | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!p) sessionStorage.removeItem(PENDING_KEY);
+    else sessionStorage.setItem(PENDING_KEY, JSON.stringify(p));
+  } catch {
+    /* ignore */
+  }
+}
 
 function flowStatus(
   id: (typeof flowSteps)[number]["id"],
@@ -284,6 +325,166 @@ export default function CreatePage() {
     setRewards((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   }
 
+  async function runDepositsAndActivate(pending: PendingCreate) {
+    let { machineId, nextDepositIndex, deposits, hashes, phase } = pending;
+    const total = deposits.length;
+
+    try {
+      if (phase === "deposit") {
+        for (let i = nextDepositIndex; i < deposits.length; i++) {
+          const line = deposits[i];
+          if (BigInt(line.amount) <= 0n) {
+            nextDepositIndex = i + 1;
+            writePending({
+              machineId,
+              nextDepositIndex,
+              deposits,
+              hashes,
+              phase: "deposit",
+            });
+            continue;
+          }
+          setStep({
+            id: "deposit",
+            label: `Approve wallet: deposit ${i + 1}/${total} (${line.tier})…`,
+            index: i + 1,
+            total,
+          });
+          writePending({
+            machineId,
+            nextDepositIndex: i,
+            deposits,
+            hashes,
+            phase: "deposit",
+          });
+          // NAJ actionCreators — InternalAction throws "Unsupported NAJ action" in Selector v10.
+          const depositOut = await callFunction({
+            contractId: line.token.trim(),
+            method: "ft_transfer_call",
+            args: {
+              receiver_id: GACHA_CONTRACT,
+              amount: line.amount,
+              memo: null,
+              msg: buildDepositRewardMsg(machineId, line.index),
+            },
+            gas: GAS_FT_TRANSFER_CALL,
+            deposit: ONE_YOCTO,
+          });
+          const h = extractTxHash(depositOut);
+          if (h) hashes = [...hashes, h];
+          nextDepositIndex = i + 1;
+          writePending({
+            machineId,
+            nextDepositIndex,
+            deposits,
+            hashes,
+            phase: "deposit",
+          });
+        }
+        phase = "verify";
+        writePending({
+          machineId,
+          nextDepositIndex,
+          deposits,
+          hashes,
+          phase,
+        });
+      }
+
+      if (phase === "verify" || phase === "activate") {
+        setStep({
+          id: "verify",
+          label: "Confirming deposits on-chain…",
+        });
+        writePending({
+          machineId,
+          nextDepositIndex,
+          deposits,
+          hashes,
+          phase: "verify",
+        });
+        const verified = await waitForDepositsFunded(
+          machineId,
+          (attempt, deposited, need) => {
+            setStep({
+              id: "verify",
+              label: `Confirming deposits… ${deposited}/${need} slots (${attempt})`,
+            });
+          },
+        );
+        if (!verified) {
+          writePending({
+            machineId,
+            nextDepositIndex,
+            deposits,
+            hashes,
+            phase: "verify",
+          });
+          setStep({
+            id: "error",
+            machineId,
+            hashes,
+            message: `Deposits not confirmed yet for machine #${machineId}. Approve any pending wallet prompts, then tap “Retry activate”. Or open the machine and Activate when inventory is full.`,
+          });
+          toast.error("Still confirming deposits — retry when ready");
+          return;
+        }
+        phase = "activate";
+        writePending({
+          machineId,
+          nextDepositIndex,
+          deposits,
+          hashes,
+          phase,
+        });
+      }
+
+      setStep({ id: "activate", label: "Activating machine…" });
+      const actOut = await callFunction({
+        contractId: GACHA_CONTRACT,
+        method: "activate_machine",
+        args: { machine_id: machineId },
+        gas: GAS_ACTIVATE,
+        deposit: "0",
+      });
+      const actHash = extractTxHash(actOut);
+      if (actHash) hashes = [...hashes, actHash];
+
+      const final = await getMachine(machineId);
+      if (!final || final.status !== "Active") {
+        writePending({
+          machineId,
+          nextDepositIndex,
+          deposits,
+          hashes,
+          phase: "activate",
+        });
+        setStep({
+          id: "error",
+          machineId,
+          hashes,
+          message: `Activation incomplete (status: ${final?.status ?? "unknown"}). Tap “Retry activate”.`,
+        });
+        toast.error("Activation incomplete — retry");
+        return;
+      }
+
+      writePending(null);
+      setStep({ id: "done", machineId, hashes });
+      toast.success(`Machine #${machineId} is Active`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      // Keep pending so wallet-redirect remounts can resume.
+      setStep({
+        id: "error",
+        message: `${message} — tap Continue setup if the wallet redirected.`,
+        machineId,
+        hashes,
+      });
+      toast.error(message);
+    }
+  }
+
   async function onSubmit() {
     if (!signedAccountId) {
       toast.message("Connect your wallet first");
@@ -319,7 +520,13 @@ export default function CreatePage() {
       rewards: rewardInputs,
     };
 
-    const hashes: string[] = [];
+    const deposits: PendingDepositLine[] = depositLines.map((d) => ({
+      index: d.index,
+      token: d.token.trim() || rewardToken,
+      amount: d.amount.toString(),
+      tier: d.tier,
+    }));
+
     try {
       setStep({ id: "create", label: "Creating machine on-chain…" });
       const createDeposit = await getRequiredCreateDeposit(maxPacks);
@@ -330,10 +537,10 @@ export default function CreatePage() {
         gas: GAS_CREATE_MACHINE,
         deposit: createDeposit,
       });
+      const hashes: string[] = [];
       const createHash = extractTxHash(createOut);
       if (createHash) hashes.push(createHash);
 
-      // Prefer tx return value / EVENT_JSON machine_created (not "newest by creator").
       const machineId =
         typeof createOut === "number"
           ? createOut
@@ -347,140 +554,77 @@ export default function CreatePage() {
         );
       }
 
-      for (let i = 0; i < depositLines.length; i++) {
-        const line = depositLines[i];
-        setStep({
-          id: "deposit",
-          label: `Depositing reward #${i} (${line.tier})…`,
-          index: i + 1,
-          total: depositLines.length,
-        });
-        // Use callFunction (NAJ actionCreators) — signAndSendTransactions with
-        // InternalAction { type, params } throws "Unsupported NAJ action" in Selector v10.
-        const depositOut = await callFunction({
-          contractId: line.token.trim(),
-          method: "ft_transfer_call",
-          args: {
-            receiver_id: GACHA_CONTRACT,
-            amount: line.amount.toString(),
-            memo: null,
-            msg: buildDepositRewardMsg(machineId, i),
-          },
-          gas: GAS_FT_TRANSFER_CALL,
-          deposit: ONE_YOCTO,
-        });
-        const h = extractTxHash(depositOut);
-        if (h) hashes.push(h);
-      }
-
-      setStep({
-        id: "verify",
-        label: "Verifying deposits on-chain (testnet can take a minute)…",
-      });
-      const verified = await waitForDepositsFunded(
+      const pending: PendingCreate = {
         machineId,
-        (attempt, deposited, need) => {
-          setStep({
-            id: "verify",
-            label: `Verifying deposits… ${deposited}/${need} slots (try ${attempt})`,
-          });
-        },
-      );
-      if (!verified) {
-        setStep({
-          id: "error",
-          machineId,
-          hashes,
-          message: `Deposits not confirmed yet for machine #${machineId}. Testnet can lag — tap “Retry activate” below, or open the machine page. Activate needs inventory ≥ max packs.`,
-        });
-        toast.error("Deposits not confirmed yet — you can retry activate");
-        return;
-      }
-
-      setStep({ id: "activate", label: "Activating machine…" });
-      const actOut = await callFunction({
-        contractId: GACHA_CONTRACT,
-        method: "activate_machine",
-        args: { machine_id: machineId },
-        gas: GAS_ACTIVATE,
-        deposit: "0",
-      });
-      const actHash = extractTxHash(actOut);
-      if (actHash) hashes.push(actHash);
-
-      const final = await getMachine(machineId);
-      if (!final || final.status !== "Active") {
-        setStep({
-          id: "error",
-          machineId,
-          hashes,
-          message: `activate_machine finished but status is ${final?.status ?? "unknown"}. Tap “Retry activate” or open the machine page.`,
-        });
-        toast.error("Activation incomplete — retry activate");
-        return;
-      }
-
-      setStep({ id: "done", machineId, hashes });
-      toast.success(`Machine #${machineId} is Active`);
+        nextDepositIndex: 0,
+        deposits,
+        hashes,
+        phase: "deposit",
+      };
+      writePending(pending);
+      await runDepositsAndActivate(pending);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      setStep({ id: "error", message });
+      const pending = readPending();
+      setStep({
+        id: "error",
+        message,
+        machineId: pending?.machineId,
+        hashes: pending?.hashes,
+      });
       toast.error(message);
     }
   }
 
-  /** Resume after create+deposit already submitted (common on slow testnet). */
+  async function continuePendingSetup() {
+    const pending = readPending();
+    if (!pending) {
+      toast.message("No unfinished create found");
+      return;
+    }
+    if (!signedAccountId) {
+      toast.message("Connect your wallet first");
+      return;
+    }
+    toast.message(`Continuing machine #${pending.machineId}…`);
+    await runDepositsAndActivate(pending);
+  }
+
+  /** Resume verify+activate after deposits already sent. */
   async function retryActivate(machineId: number) {
     if (!signedAccountId) {
       toast.message("Connect your wallet first");
       return;
     }
-    const hashes: string[] = step.id === "error" ? (step.hashes ?? []) : [];
-    try {
-      setStep({ id: "verify", label: "Re-checking deposits on-chain…" });
-      const verified = await waitForDepositsFunded(
-        machineId,
-        (attempt, deposited, need) => {
-          setStep({
-            id: "verify",
-            label: `Verifying deposits… ${deposited}/${need} slots (try ${attempt})`,
-          });
-        },
-      );
-      if (!verified) {
-        setStep({
-          id: "error",
-          machineId,
-          hashes,
-          message: `Still waiting on deposits for machine #${machineId}. Confirm reward deposits on the explorer, then retry activate.`,
-        });
-        toast.error("Deposits still not visible on-chain");
-        return;
-      }
-      setStep({ id: "activate", label: "Activating machine…" });
-      const actOut = await callFunction({
-        contractId: GACHA_CONTRACT,
-        method: "activate_machine",
-        args: { machine_id: machineId },
-        gas: GAS_ACTIVATE,
-        deposit: "0",
-      });
-      const actHash = extractTxHash(actOut);
-      if (actHash) hashes.push(actHash);
-      const final = await getMachine(machineId);
-      if (!final || final.status !== "Active") {
-        throw new Error(
-          `activate_machine finished but status is ${final?.status ?? "unknown"}`,
-        );
-      }
-      setStep({ id: "done", machineId, hashes });
-      toast.success(`Machine #${machineId} is Active`);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      setStep({ id: "error", message, machineId, hashes });
-      toast.error(message);
-    }
+    const existing = readPending();
+    const hashes =
+      step.id === "error"
+        ? (step.hashes ?? existing?.hashes ?? [])
+        : (existing?.hashes ?? []);
+    const pending: PendingCreate = {
+      machineId,
+      nextDepositIndex: existing?.deposits.length ?? 0,
+      deposits: existing?.deposits ?? [],
+      hashes,
+      phase: "verify",
+    };
+    writePending(pending);
+    await runDepositsAndActivate(pending);
   }
+
+  // After MyNearWallet redirect, resume unfinished create/deposit/activate.
+  useEffect(() => {
+    if (!signedAccountId) return;
+    const pending = readPending();
+    if (!pending) return;
+    if (step.id !== "idle") return;
+    setStep({
+      id: "error",
+      machineId: pending.machineId,
+      hashes: pending.hashes,
+      message: `Unfinished setup for machine #${pending.machineId} (wallet may have redirected). Tap “Continue setup” to deposit/activate.`,
+    });
+  }, [signedAccountId, step.id]);
 
   const busy = step.id !== "idle" && step.id !== "done" && step.id !== "error";
 
@@ -909,6 +1053,16 @@ export default function CreatePage() {
                 message={step.message}
                 action={
                   <div className="flex flex-wrap gap-3">
+                    {readPending() ? (
+                      <button
+                        type="button"
+                        className="font-medium text-brand underline"
+                        disabled={busy}
+                        onClick={() => void continuePendingSetup()}
+                      >
+                        Continue setup
+                      </button>
+                    ) : null}
                     {step.machineId != null ? (
                       <>
                         <button
@@ -930,7 +1084,10 @@ export default function CreatePage() {
                     <button
                       type="button"
                       className="underline"
-                      onClick={() => setStep({ id: "idle" })}
+                      onClick={() => {
+                        writePending(null);
+                        setStep({ id: "idle" });
+                      }}
                     >
                       Reset and try again
                     </button>
