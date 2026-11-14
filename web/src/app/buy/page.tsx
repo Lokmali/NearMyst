@@ -75,7 +75,7 @@ export default function BuyMystPage() {
         ftBalanceOf(token, signedAccountId).catch(() => "0"),
         storageBalanceOf(token, signedAccountId).catch(() => null),
       ]);
-      setNearBal(near);
+      setNearBal(near.toString());
       setMystBal(myst);
       setRegistered(storage != null);
     } catch {

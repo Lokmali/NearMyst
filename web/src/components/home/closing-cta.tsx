@@ -20,8 +20,8 @@ export function ClosingCta() {
             <ButtonLink href="/explore" size="lg">
               Explore machines
             </ButtonLink>
-            <ButtonLink href="/create" size="lg" variant="secondary">
-              Create a machine
+            <ButtonLink href="/buy" size="lg" variant="secondary">
+              Buy $myst
             </ButtonLink>
           </div>
         </FadeIn>

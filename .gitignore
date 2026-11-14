@@ -27,6 +27,7 @@ contract/Cargo.lock
 web/node_modules/
 web/.next/
 web/.next-build/
+web/.next-build-ci/
 web/out/
 web/coverage/
 npm-debug.log*

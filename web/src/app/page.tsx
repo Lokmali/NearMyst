@@ -62,8 +62,8 @@ export default async function HomePage() {
             <ButtonLink href="/explore" size="lg">
               Explore machines
             </ButtonLink>
-            <ButtonLink href="#how" variant="secondary" size="lg">
-              How it works
+            <ButtonLink href="/buy" variant="secondary" size="lg">
+              Buy $myst
             </ButtonLink>
           </div>
         </div>
