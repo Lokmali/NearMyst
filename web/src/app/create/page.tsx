@@ -326,7 +326,8 @@ export default function CreatePage() {
   }
 
   async function runDepositsAndActivate(pending: PendingCreate) {
-    let { machineId, nextDepositIndex, deposits, hashes, phase } = pending;
+    const { machineId, deposits } = pending;
+    let { nextDepositIndex, hashes, phase } = pending;
     const total = deposits.length;
 
     try {
