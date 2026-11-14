@@ -69,7 +69,33 @@ type Step =
   | { id: "verify"; label: string }
   | { id: "activate"; label: string }
   | { id: "done"; machineId: number; hashes: string[] }
-  | { id: "error"; message: string };
+  | { id: "error"; message: string; machineId?: number; hashes?: string[] };
+
+/** Testnet RPC + FT callbacks can lag; poll until inventory is funded. */
+async function waitForDepositsFunded(
+  machineId: number,
+  onTick?: (attempt: number, deposited: number, need: number) => void,
+): Promise<boolean> {
+  const maxAttempts = 40; // ~90s with backoff
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const delay = attempt < 5 ? 1500 : attempt < 15 ? 2000 : 3000;
+    await new Promise((r) => setTimeout(r, delay));
+    try {
+      const m = await getMachine(machineId);
+      if (!m) continue;
+      const deposited = m.rewards.reduce(
+        (s, r) => s + r.quantity_deposited,
+        0,
+      );
+      onTick?.(attempt + 1, deposited, m.max_packs);
+      if (deposited >= m.max_packs) return true;
+      if (m.status === "Active") return true;
+    } catch {
+      /* keep polling */
+    }
+  }
+  return false;
+}
 
 const flowSteps = [
   { id: "create", label: "Basics" },
@@ -347,25 +373,28 @@ export default function CreatePage() {
         if (h) hashes.push(h);
       }
 
-      setStep({ id: "verify", label: "Verifying deposits on-chain…" });
-      let verified = false;
-      for (let attempt = 0; attempt < 12; attempt++) {
-        await new Promise((r) => setTimeout(r, 1000));
-        const m = await getMachine(machineId);
-        if (!m) continue;
-        const deposited = m.rewards.reduce(
-          (s, r) => s + r.quantity_deposited,
-          0,
-        );
-        if (deposited >= m.max_packs) {
-          verified = true;
-          break;
-        }
-      }
+      setStep({
+        id: "verify",
+        label: "Verifying deposits on-chain (testnet can take a minute)…",
+      });
+      const verified = await waitForDepositsFunded(
+        machineId,
+        (attempt, deposited, need) => {
+          setStep({
+            id: "verify",
+            label: `Verifying deposits… ${deposited}/${need} slots (try ${attempt})`,
+          });
+        },
+      );
       if (!verified) {
-        throw new Error(
-          `Deposits not verified on-chain for machine #${machineId}. Activate blocked until inventory >= max_packs.`,
-        );
+        setStep({
+          id: "error",
+          machineId,
+          hashes,
+          message: `Deposits not confirmed yet for machine #${machineId}. Testnet can lag — tap “Retry activate” below, or open the machine page. Activate needs inventory ≥ max packs.`,
+        });
+        toast.error("Deposits not confirmed yet — you can retry activate");
+        return;
       }
 
       setStep({ id: "activate", label: "Activating machine…" });
@@ -381,9 +410,14 @@ export default function CreatePage() {
 
       const final = await getMachine(machineId);
       if (!final || final.status !== "Active") {
-        throw new Error(
-          `activate_machine finished but status is ${final?.status ?? "unknown"}`,
-        );
+        setStep({
+          id: "error",
+          machineId,
+          hashes,
+          message: `activate_machine finished but status is ${final?.status ?? "unknown"}. Tap “Retry activate” or open the machine page.`,
+        });
+        toast.error("Activation incomplete — retry activate");
+        return;
       }
 
       setStep({ id: "done", machineId, hashes });
@@ -391,6 +425,59 @@ export default function CreatePage() {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       setStep({ id: "error", message });
+      toast.error(message);
+    }
+  }
+
+  /** Resume after create+deposit already submitted (common on slow testnet). */
+  async function retryActivate(machineId: number) {
+    if (!signedAccountId) {
+      toast.message("Connect your wallet first");
+      return;
+    }
+    const hashes: string[] = step.id === "error" ? (step.hashes ?? []) : [];
+    try {
+      setStep({ id: "verify", label: "Re-checking deposits on-chain…" });
+      const verified = await waitForDepositsFunded(
+        machineId,
+        (attempt, deposited, need) => {
+          setStep({
+            id: "verify",
+            label: `Verifying deposits… ${deposited}/${need} slots (try ${attempt})`,
+          });
+        },
+      );
+      if (!verified) {
+        setStep({
+          id: "error",
+          machineId,
+          hashes,
+          message: `Still waiting on deposits for machine #${machineId}. Confirm reward deposits on the explorer, then retry activate.`,
+        });
+        toast.error("Deposits still not visible on-chain");
+        return;
+      }
+      setStep({ id: "activate", label: "Activating machine…" });
+      const actOut = await callFunction({
+        contractId: GACHA_CONTRACT,
+        method: "activate_machine",
+        args: { machine_id: machineId },
+        gas: GAS_ACTIVATE,
+        deposit: "0",
+      });
+      const actHash = extractTxHash(actOut);
+      if (actHash) hashes.push(actHash);
+      const final = await getMachine(machineId);
+      if (!final || final.status !== "Active") {
+        throw new Error(
+          `activate_machine finished but status is ${final?.status ?? "unknown"}`,
+        );
+      }
+      setStep({ id: "done", machineId, hashes });
+      toast.success(`Machine #${machineId} is Active`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setStep({ id: "error", message, machineId, hashes });
       toast.error(message);
     }
   }
@@ -821,13 +908,33 @@ export default function CreatePage() {
               <ErrorPanel
                 message={step.message}
                 action={
-                  <button
-                    type="button"
-                    className="underline"
-                    onClick={() => setStep({ id: "idle" })}
-                  >
-                    Reset and try again
-                  </button>
+                  <div className="flex flex-wrap gap-3">
+                    {step.machineId != null ? (
+                      <>
+                        <button
+                          type="button"
+                          className="font-medium text-brand underline"
+                          disabled={busy}
+                          onClick={() => void retryActivate(step.machineId!)}
+                        >
+                          Retry activate
+                        </button>
+                        <Link
+                          className="underline"
+                          href={`/machine/${step.machineId}`}
+                        >
+                          Open machine #{step.machineId}
+                        </Link>
+                      </>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="underline"
+                      onClick={() => setStep({ id: "idle" })}
+                    >
+                      Reset and try again
+                    </button>
+                  </div>
                 }
               />
             )}

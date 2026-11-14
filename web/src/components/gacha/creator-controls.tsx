@@ -5,6 +5,7 @@ import { useWalletSelector } from "@near-wallet-selector/react-hook";
 import { toast } from "sonner";
 import type { MachineView, PlatformConfig } from "@/lib/types";
 import {
+  GAS_ACTIVATE,
   GAS_PAUSE,
   GAS_WITHDRAW,
   getMachine,
@@ -121,6 +122,22 @@ export function CreatorControls({
         </span>
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
+        {machine.status === "Draft" && (
+          <Button
+            loading={busy === "Activate"}
+            disabled={!!busy}
+            onClick={() =>
+              void run(
+                "Activate",
+                "activate_machine",
+                { machine_id: machine.id },
+                GAS_ACTIVATE,
+              )
+            }
+          >
+            Activate machine
+          </Button>
+        )}
         {machine.status === "Active" && (
           <Button
             variant="secondary"
