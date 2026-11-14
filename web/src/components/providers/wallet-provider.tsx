@@ -1,23 +1,13 @@
 "use client";
 
 import { setupBitteWallet } from "@near-wallet-selector/bitte-wallet";
-import { setupBitgetWallet } from "@near-wallet-selector/bitget-wallet";
-import { setupCoin98Wallet } from "@near-wallet-selector/coin98-wallet";
 import { setupHereWallet } from "@near-wallet-selector/here-wallet";
 import { setupHotWallet } from "@near-wallet-selector/hot-wallet";
 import { setupIntearWallet } from "@near-wallet-selector/intear-wallet";
-import { setupLedger } from "@near-wallet-selector/ledger";
-import { setupMathWallet } from "@near-wallet-selector/math-wallet";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupMeteorWalletApp } from "@near-wallet-selector/meteor-wallet-app";
 import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
-import { setupNarwallets } from "@near-wallet-selector/narwallets";
 import { setupNearMobileWallet } from "@near-wallet-selector/near-mobile-wallet";
-import { setupNightly } from "@near-wallet-selector/nightly";
-import { setupOKXWallet } from "@near-wallet-selector/okx-wallet";
-import { setupSender } from "@near-wallet-selector/sender";
-import { setupWelldoneWallet } from "@near-wallet-selector/welldone-wallet";
-import { setupXDEFI } from "@near-wallet-selector/xdefi";
 import { WalletSelectorProvider } from "@near-wallet-selector/react-hook";
 import type { WalletModuleFactory } from "@near-wallet-selector/core";
 import "@near-wallet-selector/modal-ui/styles.css";
@@ -61,28 +51,30 @@ function safeSetup(name: string, factory: () => unknown): AnyWalletFactory | nul
   }
 }
 
+function inMeteorApp(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /MeteorWallet|MeteorApp/i.test(navigator.userAgent);
+}
+
+/**
+ * Testnet demo: only wallets that work on NEAR testnet without probing
+ * `window.near` (injected EVM/mainnet wallets throw "reading 'near'").
+ * Meteor Wallet App is in-app only — listing it on desktop throws "Not supported".
+ */
 function buildWalletModules(): AnyWalletFactory[] {
   const modules = [
     safeSetup("my-near-wallet", () => setupMyNearWallet()),
     safeSetup("meteor-wallet", () => setupMeteorWallet()),
-    safeSetup("meteor-wallet-app", () =>
-      setupMeteorWalletApp({ contractId: GACHA_CONTRACT }),
-    ),
+    inMeteorApp()
+      ? safeSetup("meteor-wallet-app", () =>
+          setupMeteorWalletApp({ contractId: GACHA_CONTRACT }),
+        )
+      : null,
     safeSetup("here-wallet", () => setupHereWallet()),
     safeSetup("hot-wallet", () => setupHotWallet()),
     safeSetup("intear-wallet", () => setupIntearWallet()),
     safeSetup("bitte-wallet", () => setupBitteWallet()),
     safeSetup("near-mobile-wallet", () => setupNearMobileWallet()),
-    safeSetup("sender", () => setupSender()),
-    safeSetup("nightly", () => setupNightly()),
-    safeSetup("okx-wallet", () => setupOKXWallet()),
-    safeSetup("bitget-wallet", () => setupBitgetWallet()),
-    safeSetup("math-wallet", () => setupMathWallet()),
-    safeSetup("coin98-wallet", () => setupCoin98Wallet()),
-    safeSetup("welldone-wallet", () => setupWelldoneWallet()),
-    safeSetup("xdefi", () => setupXDEFI()),
-    safeSetup("narwallets", () => setupNarwallets()),
-    safeSetup("ledger", () => setupLedger()),
   ];
 
   return modules.filter((m): m is AnyWalletFactory => m !== null);

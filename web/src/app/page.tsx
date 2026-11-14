@@ -3,7 +3,6 @@ import Link from "next/link";
 import { MachineCard } from "@/components/gacha/machine-card";
 import { FaqAccordion } from "@/components/home/faq-accordion";
 import { HowBento } from "@/components/home/how-bento";
-import { RarityStrip } from "@/components/home/rarity-strip";
 import { ClosingCta } from "@/components/home/closing-cta";
 import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
@@ -36,8 +35,6 @@ export default async function HomePage() {
   } catch (e) {
     loadError = e instanceof Error ? e.message : String(e);
   }
-
-  const featured = machines[0] ?? null;
 
   return (
     <>
@@ -98,12 +95,6 @@ export default async function HomePage() {
       <div className="page-wrap py-16 md:py-24">
         <HowBento />
       </div>
-
-      {featured ? (
-        <div className="page-wrap py-16 md:py-20">
-          <RarityStrip machine={featured} />
-        </div>
-      ) : null}
 
       <IrisSection id="featured">
         <div className="flex flex-wrap items-end justify-between gap-4">

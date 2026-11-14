@@ -7,7 +7,6 @@ import { formatTokenAmount, formatWinHeadline, tokenSymbol } from "@/lib/format"
 import { TierBadge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
-import { Disclaimer } from "@/components/ui/disclaimer";
 import { MysteryTrunk } from "@/components/brand/mystery-trunk";
 import { useMotionPreference } from "@/components/providers/motion-provider";
 import { rarityClass, RARITY_HEX } from "@/lib/rarity";
@@ -181,7 +180,7 @@ export function RevealModal({
                   ? "Lid opening…"
                   : "Mystery trunk"}
             </p>
-            <p className="mt-2 text-small text-secondary">Revealing on-chain result…</p>
+            <p className="mt-2 text-small text-secondary">Opening your pack…</p>
             <Button variant="ghost" className="mt-4" onClick={() => setPhase("reveal")}>
               Skip
             </Button>
@@ -219,7 +218,9 @@ export function RevealModal({
             <div className="mb-5 flex justify-center">
               <MysteryTrunk size="lg" tier={result.tier} open motion="open" />
             </div>
-            <p className="text-center text-small text-muted">You won</p>
+            <p className="text-center text-small font-medium text-secondary">
+              Nice — this landed in your wallet
+            </p>
             <motion.p
               className={cn(
                 "mt-2 text-center font-display text-display tabular leading-none",
@@ -234,15 +235,22 @@ export function RevealModal({
                 {symbol}
               </span>
             </motion.p>
-            <div className="mt-4 flex items-center justify-center gap-2">
+            <div className="mt-4 flex justify-center">
               <TierBadge tier={result.tier} />
-              <span className="text-small text-secondary">{result.tier} reward</span>
             </div>
+            <p className="mt-3 text-center text-caption text-muted">
+              Demo on NEAR testnet — not real money.
+            </p>
             <details className="mt-5 text-caption text-muted">
               <summary className="cursor-pointer hover:text-secondary">
-                Technical details
+                How this was decided
               </summary>
               <div className="mt-2 space-y-2">
+                <p className="text-left text-secondary">
+                  Odds are published on the machine. The result is stored on
+                  NEAR testnet (not VRF — a mainnet version would need stronger
+                  randomness).
+                </p>
                 <div className="flex justify-between gap-4">
                   <span>Token</span>
                   <span className="max-w-[60%] truncate mono-id text-primary">{result.token}</span>
@@ -251,29 +259,21 @@ export function RevealModal({
                   <span>Amount</span>
                   <span className="tabular text-primary">{formatTokenAmount(result.amount)}</span>
                 </div>
-                <div className="flex justify-between gap-4">
-                  <span>Reward id</span>
-                  <span className="tabular text-primary">{result.reward_id}</span>
-                </div>
                 <div>
                   <div className="flex items-center justify-between">
-                    <span>random_ref</span>
-                    <CopyButton value={result.random_ref} iconOnly label="Copy random_ref" />
+                    <span>Proof</span>
+                    <CopyButton value={result.random_ref} iconOnly label="Copy proof" />
                   </div>
                   <p className="mt-1 break-all mono-id">{result.random_ref}</p>
                 </div>
               </div>
             </details>
-            <Disclaimer className="mt-4">
-              Testnet RNG only (not VRF). Mainnet needs VRF or an oracle.
-            </Disclaimer>
             <p className="sr-only" aria-live="polite">
               You won {winLine}, {result.tier} reward.
             </p>
-            <p className="mt-5 text-small font-medium text-muted">What next</p>
-            <div className="mt-2 flex flex-col gap-2">
+            <div className="mt-5 flex flex-col gap-2">
               <Button className="w-full" onClick={onClose}>
-                Open another
+                Play again
               </Button>
               <ButtonLink
                 href="/inventory"
@@ -281,7 +281,7 @@ export function RevealModal({
                 className="w-full"
                 onClick={onClose}
               >
-                View inventory
+                See my packs
               </ButtonLink>
               <ButtonLink
                 href={verifyHref}
@@ -289,7 +289,7 @@ export function RevealModal({
                 className="w-full"
                 onClick={onClose}
               >
-                Verify on-chain
+                Check on explorer
               </ButtonLink>
             </div>
           </motion.div>

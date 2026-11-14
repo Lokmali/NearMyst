@@ -136,28 +136,30 @@ function ResultInner() {
 
       {result ? (
         <Card className="text-center">
-          <p className="text-small text-muted">You won</p>
-          <div className="mt-3 flex justify-center">
-            <TierBadge tier={result.tier} />
-          </div>
+          <p className="text-small font-medium text-secondary">
+            Nice — this landed in your wallet
+          </p>
           <p className="mt-4 font-display text-display tabular leading-none text-primary">
             {formatTokenAmount(result.amount)}
             <span className="ml-2 text-[0.55em] font-semibold text-brand">
               {tokenSymbol(result.token)}
             </span>
           </p>
-          <p className="mt-3 mono-id break-all text-caption text-muted">
-            {result.token}
+          <div className="mt-3 flex justify-center">
+            <TierBadge tier={result.tier} />
+          </div>
+          <p className="mt-3 text-caption text-muted">
+            Demo on NEAR testnet — not real money.
           </p>
           <p className="sr-only">
             {formatWinHeadline(result.amount, result.token)}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <ButtonLink href="/inventory" variant="secondary">
-              View in inventory
-            </ButtonLink>
             <ButtonLink href={`/machine/${pack.machine_id}`}>
-              Open another
+              Play again
+            </ButtonLink>
+            <ButtonLink href="/inventory" variant="secondary">
+              See my packs
             </ButtonLink>
           </div>
         </Card>
