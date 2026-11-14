@@ -2,7 +2,6 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -15,66 +14,44 @@ type MotionMode = "full" | "reduced";
 type MotionContextValue = {
   mode: MotionMode;
   reduced: boolean;
-  setMode: (mode: MotionMode) => void;
-  toggle: () => void;
 };
 
 const MotionContext = createContext<MotionContextValue | null>(null);
-const STORAGE_KEY = "nearmyst-motion";
 
-function readStored(): MotionMode | null {
-  try {
-    const v = localStorage.getItem(STORAGE_KEY);
-    if (v === "full" || v === "reduced") return v;
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
+/** Legacy key from the removed Motion Full/Reduced UI toggle. */
+const LEGACY_STORAGE_KEY = "nearmyst-motion";
 
-function writeStored(mode: MotionMode) {
-  try {
-    localStorage.setItem(STORAGE_KEY, mode);
-  } catch {
-    /* ignore */
-  }
-}
-
+/**
+ * Motion is always on unless the OS asks for reduced motion.
+ * No in-app toggle — animations stay enabled for everyone else.
+ */
 export function MotionProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<MotionMode>("full");
-  const [ready, setReady] = useState(false);
+  const [mode, setMode] = useState<MotionMode>("full");
 
   useEffect(() => {
-    const stored = readStored();
-    const prefersReduced =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setModeState(stored ?? (prefersReduced ? "reduced" : "full"));
-    setReady(true);
+    try {
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setMode(mq.matches ? "reduced" : "full");
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
     document.documentElement.classList.toggle("motion-reduced", mode === "reduced");
-  }, [mode, ready]);
-
-  const setMode = useCallback((next: MotionMode) => {
-    setModeState(next);
-    writeStored(next);
-  }, []);
-
-  const toggle = useCallback(() => {
-    setMode(mode === "full" ? "reduced" : "full");
-  }, [mode, setMode]);
+  }, [mode]);
 
   const value = useMemo(
     () => ({
       mode,
       reduced: mode === "reduced",
-      setMode,
-      toggle,
     }),
-    [mode, setMode, toggle],
+    [mode],
   );
 
   return <MotionContext.Provider value={value}>{children}</MotionContext.Provider>;
@@ -86,8 +63,6 @@ export function useMotionPreference() {
     return {
       mode: "full" as MotionMode,
       reduced: false,
-      setMode: (() => {}) as (mode: MotionMode) => void,
-      toggle: () => {},
     };
   }
   return ctx;

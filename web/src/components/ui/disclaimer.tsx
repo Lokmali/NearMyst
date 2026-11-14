@@ -9,10 +9,11 @@ export function Disclaimer({
   className?: string;
 }) {
   return (
-    <p
+    <div
       role="note"
       className={cn(
-        "inline-flex w-full items-start gap-2.5 rounded-[var(--radius-btn)] border border-warning/25 bg-warning-tint px-3.5 py-2.5 text-small leading-5 text-secondary",
+        // Multi-line note: soft card radius (not pill) so mobile wrap stays readable
+        "flex w-full max-w-full items-start gap-2.5 rounded-[var(--radius-md)] border border-warning/25 bg-warning-tint px-3.5 py-3 text-[0.9375rem] leading-6 text-secondary sm:gap-3 sm:px-4 sm:py-3.5 sm:text-small sm:leading-5",
         className,
       )}
     >
@@ -21,7 +22,7 @@ export function Disclaimer({
         strokeWidth={1.75}
         aria-hidden
       />
-      <span>{children}</span>
-    </p>
+      <div className="min-w-0 flex-1 text-pretty break-words">{children}</div>
+    </div>
   );
 }

@@ -5,7 +5,6 @@ import { ArcMark } from "@/components/brand/arc-mark";
 import { SocialLinks } from "@/components/brand/social-links";
 import { CopyButton } from "@/components/ui/copy-button";
 import { MEME_COOKING_URL } from "@/components/ux/create-meme-token";
-import { useMotionPreference } from "@/components/providers/motion-provider";
 import {
   explorerAccountUrl,
   GACHA_CONTRACT,
@@ -14,8 +13,6 @@ import {
 } from "@/lib/config";
 
 export function Footer() {
-  const { mode, toggle } = useMotionPreference();
-
   return (
     <footer className="mt-0 border-t border-border bg-base/80 backdrop-blur-sm">
       <div className="page-wrap grid gap-10 py-12 md:grid-cols-3">
@@ -118,13 +115,6 @@ export function Footer() {
                 label="Copy contract id"
               />
             </div>
-            <button
-              type="button"
-              onClick={() => toggle()}
-              className="min-h-11 text-caption text-muted underline-offset-2 hover:text-secondary hover:underline"
-            >
-              Motion: {mode === "full" ? "Full" : "Reduced"}
-            </button>
             <p className="pt-2 text-caption text-muted">
               Built for NEAR HACKATHON · testnet demo only
             </p>

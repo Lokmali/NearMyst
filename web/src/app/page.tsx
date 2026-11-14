@@ -71,10 +71,14 @@ export default async function HomePage() {
 
       <div className="page-wrap space-y-6 pb-10 pt-4 md:space-y-8 md:pb-12 md:pt-5">
         <Disclaimer>
-          <strong className="font-medium text-primary">Is this real money?</strong>{" "}
-          No — testnet demo with test tokens only. Pack outcomes use testnet
-          block randomness (not VRF); block producers can influence it. Mainnet
-          would need VRF or an oracle. No audit.
+          <strong className="mb-1 block font-medium text-primary sm:mb-0 sm:inline">
+            Is this real money?
+          </strong>{" "}
+          <span className="text-secondary">
+            No — testnet demo with test tokens only. Pack outcomes use testnet
+            block randomness (not VRF); block producers can influence it.
+            Mainnet would need VRF or an oracle. No audit.
+          </span>
         </Disclaimer>
         <OnboardingChecklist />
         <p className="text-body text-secondary">

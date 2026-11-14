@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useWalletSelector } from "@near-wallet-selector/react-hook";
 import { AnimatePresence, motion } from "motion/react";
-import { Menu, X, ExternalLink, Copy, Check, LogOut, Sparkles, Wallet } from "lucide-react";
+import { Menu, X, ExternalLink, Copy, Check, LogOut, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArcMark } from "@/components/brand/arc-mark";
 import { RouteIris } from "@/components/motion/route-iris";
@@ -47,7 +47,7 @@ function HeaderShell({
   signOut: () => Promise<void> | void;
 }) {
   const pathname = usePathname();
-  const { reduced, mode, toggle } = useMotionPreference();
+  const { reduced } = useMotionPreference();
   const [balance, setBalance] = useState<string | null>(null);
   const [balError, setBalError] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -262,17 +262,6 @@ function HeaderShell({
                       <button
                         type="button"
                         role="menuitem"
-                        className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left text-small text-secondary hover:bg-subtle hover:text-primary"
-                        onClick={() => {
-                          toggle();
-                        }}
-                      >
-                        <Sparkles className="h-4 w-4" strokeWidth={1.75} />
-                        Motion: {mode === "full" ? "Full" : "Reduced"}
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
                         className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left text-small text-danger hover:bg-danger-tint"
                         onClick={() => {
                           setAccountOpen(false);
@@ -340,13 +329,6 @@ function HeaderShell({
                     {item.label}
                   </Link>
                 ))}
-                <button
-                  type="button"
-                  className="rounded-md px-3 py-3 text-left text-body text-secondary hover:bg-subtle"
-                  onClick={() => toggle()}
-                >
-                  Motion: {mode === "full" ? "Full" : "Reduced"}
-                </button>
                 <div className="mt-auto space-y-2 border-t border-border p-3">
                   {signedAccountId ? (
                     <>

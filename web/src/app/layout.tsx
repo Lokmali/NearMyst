@@ -60,8 +60,12 @@ export const metadata: Metadata = {
     creator: "@Near_Myst",
   },
   icons: {
-    icon: [{ url: "/brand/logo-v2.png", type: "image/png" }],
-    apple: [{ url: "/brand/logo-v2.png", type: "image/png" }],
+    icon: [
+      { url: "/favicon.png", type: "image/png", sizes: "any" },
+      { url: "/brand/logo-v2.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/brand/logo-v2.png", type: "image/png", sizes: "180x180" }],
+    shortcut: "/favicon.png",
   },
   other: {
     "page-type": "software",
