@@ -1,23 +1,57 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWalletSelector } from "@near-wallet-selector/react-hook";
 import { toast } from "sonner";
-import type { MachineView, PlatformConfig } from "@/lib/types";
+import type { MachineView, PlatformConfig, RewardView } from "@/lib/types";
 import {
   GAS_ACTIVATE,
+  GAS_FT_TRANSFER_CALL,
   GAS_PAUSE,
   GAS_WITHDRAW,
+  ONE_YOCTO,
+  buildDepositRewardMsg,
+  ftBalanceOf,
   getMachine,
   getMaxWithdrawableInventory,
 } from "@/lib/contract/client";
 import { GACHA_CONTRACT, explorerTxUrl } from "@/lib/config";
-import { formatTokenAmount } from "@/lib/format";
+import { formatTokenAmount, tokenSymbol } from "@/lib/format";
+import { requiredDepositAmount } from "@/lib/odds";
 import { extractTxHash } from "@/lib/tx";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { TierBadge } from "@/components/ui/badge";
+import { GetTestTokensCard } from "@/components/ux/get-test-tokens";
+
+function depositedSlots(machine: MachineView): number {
+  return (
+    machine.total_deposited_slots ??
+    machine.rewards.reduce((s, r) => s + r.quantity_deposited, 0)
+  );
+}
+
+function remainingUnits(r: RewardView): number {
+  return Math.max(0, r.quantity_total - r.quantity_deposited);
+}
+
+function depositAmountFor(r: RewardView): bigint {
+  const units = remainingUnits(r);
+  if (units <= 0) return 0n;
+  return requiredDepositAmount(r.amount_per_win, units);
+}
+
+function friendlyActivateError(raw: string, machine: MachineView): string {
+  if (/insufficient inventory/i.test(raw)) {
+    const have = depositedSlots(machine);
+    return `Deposits incomplete: ${have}/${machine.max_packs} reward slots funded. Deposit rewards first, then Activate.`;
+  }
+  if (/user reject|User rejected|cancelled|Canceled/i.test(raw)) {
+    return "Wallet request was cancelled.";
+  }
+  return raw;
+}
 
 export function CreatorControls({
   machine,
@@ -31,10 +65,26 @@ export function CreatorControls({
   const [lastTx, setLastTx] = useState<string | null>(null);
   const [maxByReward, setMaxByReward] = useState<Record<number, number>>({});
   const [unitsByReward, setUnitsByReward] = useState<Record<number, number>>({});
+  const [ftBal, setFtBal] = useState<string | null>(null);
 
   const isCreator =
     !!signedAccountId && signedAccountId === machine.creator;
   const canWithdrawInventory = machine.status !== "Active";
+
+  const haveSlots = depositedSlots(machine);
+  const needSlots = machine.max_packs;
+  const depositsReady = haveSlots >= needSlots;
+  const pendingRewards = useMemo(
+    () => machine.rewards.filter((r) => remainingUnits(r) > 0),
+    [machine.rewards],
+  );
+  const totalDepositNeed = useMemo(() => {
+    try {
+      return pendingRewards.reduce((s, r) => s + depositAmountFor(r), 0n);
+    } catch {
+      return 0n;
+    }
+  }, [pendingRewards]);
 
   const refreshMax = useCallback(async () => {
     if (!canWithdrawInventory) {
@@ -74,6 +124,26 @@ export function CreatorControls({
     void refreshMax();
   }, [refreshMax, machine.status, machine.creator_earnings]);
 
+  useEffect(() => {
+    if (!signedAccountId || machine.status !== "Draft") {
+      setFtBal(null);
+      return;
+    }
+    const token = machine.payment_token;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const bal = await ftBalanceOf(token, signedAccountId);
+        if (!cancelled) setFtBal(bal);
+      } catch {
+        if (!cancelled) setFtBal(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [signedAccountId, machine.status, machine.payment_token, haveSlots]);
+
   if (!isCreator) return null;
 
   async function refresh() {
@@ -106,11 +176,108 @@ export function CreatorControls({
       toast.success(`${label} submitted`);
       await refresh();
     } catch (e) {
+      const raw = e instanceof Error ? e.message : String(e);
+      toast.error(friendlyActivateError(raw, machine));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function depositReward(r: RewardView) {
+    if (!signedAccountId) {
+      signIn();
+      return;
+    }
+    const units = remainingUnits(r);
+    if (units <= 0) {
+      toast.message("This reward is already fully deposited");
+      return;
+    }
+    let amount: bigint;
+    try {
+      amount = depositAmountFor(r);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+      return;
+    }
+    if (amount <= 0n) return;
+
+    if (ftBal != null && BigInt(ftBal || "0") < amount) {
+      toast.error(
+        `Not enough ${tokenSymbol(r.token)}. Need ${formatTokenAmount(amount)}, have ${formatTokenAmount(ftBal)}.`,
+      );
+      return;
+    }
+
+    setBusy(`Deposit #${r.id}`);
+    try {
+      const outcome = await callFunction({
+        contractId: r.token,
+        method: "ft_transfer_call",
+        args: {
+          receiver_id: GACHA_CONTRACT,
+          amount: amount.toString(),
+          memo: null,
+          msg: buildDepositRewardMsg(machine.id, r.id),
+        },
+        gas: GAS_FT_TRANSFER_CALL,
+        deposit: ONE_YOCTO,
+      });
+      const hash = extractTxHash(outcome);
+      if (hash) setLastTx(hash);
+      toast.success(`Deposited ${r.tier} reward (#${r.id})`);
+      // FT callback can lag — poll briefly then refresh.
+      for (let i = 0; i < 8; i++) {
+        await new Promise((res) => setTimeout(res, 1200));
+        const m = await getMachine(machine.id);
+        if (!m) continue;
+        const reward = m.rewards.find((x) => x.id === r.id);
+        if (reward && reward.quantity_deposited >= r.quantity_total) {
+          onUpdated(m);
+          break;
+        }
+        if (i === 7) onUpdated(m);
+      }
+      await refreshMax();
+    } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(null);
     }
   }
+
+  async function depositAllPending() {
+    for (const r of pendingRewards) {
+      await depositReward(r);
+      // Stop if a deposit failed (busy cleared without progress).
+      const m = await getMachine(machine.id);
+      if (m) onUpdated(m);
+      const still = m?.rewards.find((x) => x.id === r.id);
+      if (still && remainingUnits(still) > 0) break;
+    }
+  }
+
+  async function activateWhenReady() {
+    if (!depositsReady) {
+      toast.error(
+        `Fund inventory first (${haveSlots}/${needSlots} slots). Deposit rewards below, then Activate.`,
+      );
+      return;
+    }
+    await run(
+      "Activate",
+      "activate_machine",
+      { machine_id: machine.id },
+      GAS_ACTIVATE,
+    );
+  }
+
+  const lowBalance =
+    machine.status === "Draft" &&
+    !depositsReady &&
+    ftBal != null &&
+    totalDepositNeed > 0n &&
+    BigInt(ftBal || "0") < totalDepositNeed;
 
   return (
     <Card className="border-border bg-raised/85 backdrop-blur-sm">
@@ -121,19 +288,97 @@ export function CreatorControls({
           {formatTokenAmount(machine.creator_earnings)} FT
         </span>
       </p>
+
+      {machine.status === "Draft" && (
+        <div className="mt-4 rounded-md border border-border bg-subtle/70 px-3 py-3">
+          <p className="text-small font-medium text-primary">
+            Inventory:{" "}
+            <span className="tabular">
+              {haveSlots}/{needSlots}
+            </span>{" "}
+            slots deposited
+          </p>
+          {!depositsReady ? (
+            <p className="mt-1 text-caption text-warning">
+              Activate needs full deposits. Approve each reward transfer in your
+              wallet, then Activate.
+            </p>
+          ) : (
+            <p className="mt-1 text-caption text-success">
+              Deposits look complete — you can Activate.
+            </p>
+          )}
+          {ftBal != null && (
+            <p className="mt-1 text-caption tabular text-muted">
+              Your balance: {formatTokenAmount(ftBal)}{" "}
+              {tokenSymbol(machine.payment_token)}
+              {!depositsReady && totalDepositNeed > 0n
+                ? ` · need ${formatTokenAmount(totalDepositNeed)} more`
+                : null}
+            </p>
+          )}
+          {pendingRewards.length > 0 && (
+            <ul className="mt-3 space-y-2">
+              {pendingRewards.map((r) => {
+                const units = remainingUnits(r);
+                let amt = "0";
+                try {
+                  amt = depositAmountFor(r).toString();
+                } catch {
+                  amt = "?";
+                }
+                return (
+                  <li
+                    key={r.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <TierBadge tier={r.tier} />
+                        <span className="text-caption mono-id text-muted">
+                          #{r.id}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-caption text-secondary">
+                        {units} units ·{" "}
+                        {formatTokenAmount(amt)} {tokenSymbol(r.token)}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      loading={busy === `Deposit #${r.id}`}
+                      disabled={!!busy}
+                      onClick={() => void depositReward(r)}
+                    >
+                      Deposit
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {pendingRewards.length > 1 && (
+            <Button
+              className="mt-3"
+              variant="secondary"
+              loading={busy?.startsWith("Deposit") ?? false}
+              disabled={!!busy}
+              onClick={() => void depositAllPending()}
+            >
+              Deposit all pending
+            </Button>
+          )}
+          {lowBalance && <GetTestTokensCard className="mt-4" />}
+        </div>
+      )}
+
       <div className="mt-4 flex flex-wrap gap-2">
         {machine.status === "Draft" && (
           <Button
             loading={busy === "Activate"}
-            disabled={!!busy}
-            onClick={() =>
-              void run(
-                "Activate",
-                "activate_machine",
-                { machine_id: machine.id },
-                GAS_ACTIVATE,
-              )
-            }
+            disabled={!!busy || !depositsReady}
+            onClick={() => void activateWhenReady()}
           >
             Activate machine
           </Button>
@@ -214,6 +459,15 @@ export function CreatorControls({
                   <p className="mt-1 text-caption text-secondary">
                     {formatTokenAmount(r.amount_per_win)} / win · max{" "}
                     <span className="tabular">{max}</span> units
+                    {machine.status === "Draft" ? (
+                      <>
+                        {" "}
+                        · deposited{" "}
+                        <span className="tabular">
+                          {r.quantity_deposited}/{r.quantity_total}
+                        </span>
+                      </>
+                    ) : null}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
