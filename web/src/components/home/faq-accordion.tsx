@@ -30,7 +30,16 @@ const ITEMS: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Do I need a wallet? How do I get play tokens?",
-    a: "Yes — connect a NEAR testnet wallet. Copy your account id, ask the demo host to send free play tokens, and use the public NEAR faucet if you need a little testnet NEAR for fees.",
+    a: (
+      <>
+        Yes — connect a NEAR testnet wallet. Get free testnet NEAR from the
+        public faucet, then{" "}
+        <a href="/buy" className={faqLinkClass}>
+          buy $myst with NEAR
+        </a>{" "}
+        on the Buy page (fixed demo rate).
+      </>
+    ),
   },
   {
     q: "Can I use my own meme token?",

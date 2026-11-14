@@ -37,6 +37,11 @@ export function Footer() {
               </Link>
             </li>
             <li>
+              <Link href="/buy" className="hover:text-primary">
+                Buy $myst
+              </Link>
+            </li>
+            <li>
               <Link href="/create" className="hover:text-primary">
                 Create
               </Link>

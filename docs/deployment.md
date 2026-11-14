@@ -96,6 +96,22 @@ near contract call-function as-transaction app.nearmyst.testnet withdraw_platfor
 
 Owner / fee_receiver can also use the in-app **Platform fees** panel on `/machine/[id]`.
 
+## Redeploy demo FT (enable Buy $myst)
+
+After pulling `buy()` on `mock_ft`, rebuild and redeploy **without** re-init (keeps balances):
+
+```bash
+cd contract/mock_ft
+cargo build --target wasm32-unknown-unknown --release
+
+near contract deploy ft.nearmyst.testnet \
+  use-file ./target/wasm32-unknown-unknown/release/mock_ft.wasm \
+  without-init-call \
+  network-config testnet sign-with-keychain send
+```
+
+Sign as the FT account key holder (`ft.nearmyst.testnet` / parent). Then open `/buy`.
+
 ## Frontend host
 
 See [vercel.md](./vercel.md).

@@ -44,6 +44,8 @@ Unpause requires `sellable_slots >= unsold packs` (not deposited ≥ max_packs).
 
 Minimal NEP-141 for sandbox + demo token `ft.nearmyst.testnet`. Payable `storage_deposit` with `storage_balance_bounds` / `storage_balance_of` (~0.00125 Ⓝ min). Includes `force_unregister` for E2E failure-path testing only.
 
+Payable `buy()` mints demo `$myst` for attached testnet NEAR at a fixed rate (`get_buy_rate` / `quote_buy`, default **100_000 $myst per 1 Ⓝ**). First-time buyers auto-register (0.00125 Ⓝ taken from the deposit). Frontend: `/buy`.
+
 ## Build
 
 ```bash

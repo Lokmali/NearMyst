@@ -20,6 +20,7 @@ import { duration, ease } from "@/lib/motion";
 
 const NAV = [
   { href: "/explore", label: "Explore" },
+  { href: "/buy", label: "Buy $myst" },
   { href: "/create", label: "Create" },
   { href: "/inventory", label: "Inventory" },
 ];

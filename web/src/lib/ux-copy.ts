@@ -22,7 +22,7 @@ export function humanError(raw: string): { title: string; hint?: string } {
   if (/insufficient|not enough|exceeds balance/i.test(m)) {
     return {
       title: "Not enough tokens",
-      hint: "Get free $myst, then try again.",
+      hint: "Buy $myst with testnet NEAR on the Buy page, then try again.",
     };
   }
   if (/storage|not registered|registration/i.test(m)) {

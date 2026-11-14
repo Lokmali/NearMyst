@@ -71,6 +71,73 @@ export async function ftBalanceOf(
   return typeof bal === "string" ? bal : String(bal);
 }
 
+/** Demo FT buy rate: $myst minted per 1 NEAR (0 decimals). */
+export async function getMystBuyRate(tokenId: string): Promise<string> {
+  const rate = await viewCall<string | { toString(): string }>(
+    tokenId,
+    "get_buy_rate",
+    {},
+  );
+  return typeof rate === "string" ? rate : String(rate);
+}
+
+export interface MystBuyQuote {
+  tokens: string;
+  spendable_yocto: string;
+  storage_yocto: string;
+  rate_myst_per_near: string;
+  registered: boolean;
+}
+
+/** Preview $myst for an attached NEAR amount (yocto). */
+export async function quoteMystBuy(
+  tokenId: string,
+  accountId: string,
+  attachedYocto: string,
+): Promise<MystBuyQuote> {
+  const q = await viewCall<MystBuyQuote>(tokenId, "quote_buy", {
+    account_id: accountId,
+    attached_yocto: attachedYocto,
+  });
+  return {
+    tokens: String(q.tokens),
+    spendable_yocto: String(q.spendable_yocto),
+    storage_yocto: String(q.storage_yocto),
+    rate_myst_per_near: String(q.rate_myst_per_near),
+    registered: !!q.registered,
+  };
+}
+
+/** Fallback rate if FT wasm predates `get_buy_rate` (must match mock_ft). */
+export const DEFAULT_MYST_PER_NEAR = 100_000n;
+export const YOCTO_PER_NEAR = 10n ** 24n;
+/** One-time NEP-141 registration on the demo FT. */
+export const FT_STORAGE_YOCTO = 1_250_000_000_000_000_000n;
+
+/** Local quote when on-chain `quote_buy` is unavailable. */
+export function localMystBuyQuote(
+  attachedYocto: bigint,
+  registered: boolean,
+  rate: bigint = DEFAULT_MYST_PER_NEAR,
+): { tokens: bigint; spendable: bigint; storage: bigint } {
+  let spendable = attachedYocto;
+  let storage = 0n;
+  if (!registered) {
+    if (attachedYocto < FT_STORAGE_YOCTO) {
+      return { tokens: 0n, spendable: 0n, storage: 0n };
+    }
+    storage = FT_STORAGE_YOCTO;
+    spendable = attachedYocto - FT_STORAGE_YOCTO;
+  }
+  return {
+    tokens: (spendable * rate) / YOCTO_PER_NEAR,
+    spendable,
+    storage,
+  };
+}
+
+export const GAS_BUY_MYST = "50000000000000"; // 50 Tgas
+
 export async function storageBalanceOf(
   tokenId: string,
   accountId: string,

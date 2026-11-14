@@ -17,6 +17,11 @@ const GAS_FOR_FT_TRANSFER_CALL: Gas = Gas::from_tgas(30);
 const GAS_FOR_RESOLVE: Gas = Gas::from_tgas(10);
 /// ~0.00125 Ⓝ — typical NEP-141 registration.
 const STORAGE_BYTE_COST: u128 = 1_250_000_000_000_000_000;
+/// 1 NEAR = 10^24 yoctoNEAR.
+const YOCTO_PER_NEAR: u128 = 1_000_000_000_000_000_000_000_000;
+/// Demo swap rate: 1 NEAR → 100_000 $myst (0 decimals).
+/// 0.01 Ⓝ ≈ 1_000 tokens (one default pack).
+const MYST_PER_NEAR: u128 = 100_000;
 
 #[derive(BorshSerialize, BorshStorageKey)]
 #[borsh(crate = "near_sdk::borsh")]
@@ -173,6 +178,77 @@ impl Contract {
         self.accounts.remove(&account_id);
     }
 
+    /// Fixed demo rate: how many $myst you get per 1 NEAR attached.
+    pub fn get_buy_rate(&self) -> U128 {
+        U128(MYST_PER_NEAR)
+    }
+
+    /// Preview $myst minted for an attached NEAR amount (yocto), including
+    /// first-time storage registration deduction when `account_id` is new.
+    pub fn quote_buy(&self, account_id: AccountId, attached_yocto: U128) -> BuyQuote {
+        let registered = self.accounts.contains_key(&account_id);
+        let (spendable, storage_used) =
+            Self::spendable_after_storage(registered, attached_yocto.0);
+        let tokens = Self::myst_for_yocto(spendable);
+        BuyQuote {
+            tokens: U128(tokens),
+            spendable_yocto: U128(spendable),
+            storage_yocto: U128(storage_used),
+            rate_myst_per_near: U128(MYST_PER_NEAR),
+            registered,
+        }
+    }
+
+    /// Pay testnet NEAR → mint demo $myst at `get_buy_rate()`.
+    /// Auto-registers the buyer (takes 0.00125 Ⓝ from the deposit once).
+    #[payable]
+    pub fn buy(&mut self) -> U128 {
+        let buyer = env::predecessor_account_id();
+        let deposit = env::attached_deposit().as_yoctonear();
+        require!(deposit > 0, "attach NEAR to buy $myst");
+
+        let registered = self.accounts.contains_key(&buyer);
+        let (spendable, storage_used) = Self::spendable_after_storage(registered, deposit);
+        if !registered {
+            require!(
+                storage_used > 0,
+                "attach at least 0.00125 NEAR to register and buy"
+            );
+            self.accounts.insert(buyer.clone(), 0);
+        }
+
+        let amount = Self::myst_for_yocto(spendable);
+        require!(
+            amount > 0,
+            "deposit too small after storage — attach more NEAR"
+        );
+
+        let bal = self.accounts.get(&buyer).copied().unwrap_or(0);
+        self.accounts.insert(buyer, bal + amount);
+        self.total_supply = self
+            .total_supply
+            .checked_add(amount)
+            .unwrap_or_else(|| env::panic_str("total_supply overflow"));
+        U128(amount)
+    }
+
+    fn spendable_after_storage(registered: bool, deposit: u128) -> (u128, u128) {
+        if registered {
+            return (deposit, 0);
+        }
+        if deposit < STORAGE_BYTE_COST {
+            return (0, 0);
+        }
+        (deposit - STORAGE_BYTE_COST, STORAGE_BYTE_COST)
+    }
+
+    fn myst_for_yocto(spendable_yocto: u128) -> u128 {
+        spendable_yocto
+            .checked_mul(MYST_PER_NEAR)
+            .unwrap_or_else(|| env::panic_str("quote overflow"))
+            / YOCTO_PER_NEAR
+    }
+
     fn internal_transfer(&mut self, from: &AccountId, to: &AccountId, amount: u128) {
         require!(amount > 0, "amount > 0");
         let from_bal = self.accounts.get(from).copied().unwrap_or(0);
@@ -199,4 +275,14 @@ pub struct StorageBalance {
 pub struct StorageBalanceBounds {
     pub min: U128,
     pub max: Option<U128>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(crate = "near_sdk::serde")]
+pub struct BuyQuote {
+    pub tokens: U128,
+    pub spendable_yocto: U128,
+    pub storage_yocto: U128,
+    pub rate_myst_per_near: U128,
+    pub registered: bool,
 }

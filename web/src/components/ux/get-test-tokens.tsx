@@ -146,13 +146,16 @@ function TokenStepsBody({
         </span>
         <div className="min-w-0 flex-1">
             <p className="text-small font-medium text-primary">
-              Ask the demo host for {tokenSymbol(DEFAULT_PAYMENT_TOKEN)}
+              Buy {tokenSymbol(DEFAULT_PAYMENT_TOKEN)} with testnet NEAR
             </p>
             <p className="mt-1 text-caption text-muted">
-              Copy your account id and send it to whoever is running the demo.
-              They’ll fund you with free {tokenSymbol(DEFAULT_PAYMENT_TOKEN)}.
+              Swap faucet NEAR for demo {tokenSymbol(DEFAULT_PAYMENT_TOKEN)} on
+              the Buy page (fixed testnet rate).
             </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            <ButtonLink href="/buy" size="sm">
+              Buy {tokenSymbol(DEFAULT_PAYMENT_TOKEN)}
+            </ButtonLink>
             {signedAccountId ? (
               <>
                 <code
@@ -163,11 +166,7 @@ function TokenStepsBody({
                 </code>
                 <CopyButton value={signedAccountId} label="Copy account" />
               </>
-            ) : (
-              <p className="text-caption text-muted">
-                Connect first — then you can copy your account in one tap.
-              </p>
-            )}
+            ) : null}
           </div>
         </div>
       </li>
