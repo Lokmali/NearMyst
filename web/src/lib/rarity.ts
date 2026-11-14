@@ -2,11 +2,11 @@ import type { Tier } from "./types";
 import { cn } from "./utils";
 
 export const RARITY_HEX: Record<Tier, string> = {
-  Common: "#9CA3AF",
-  Rare: "#38BDF8",
-  Epic: "#D946EF",
-  Legendary: "#FBBF24",
-  Mythic: "#FB7185",
+  Common: "#A39A8C",
+  Rare: "#5BA4C9",
+  Epic: "#2DD4A8",
+  Legendary: "#E0B84A",
+  Mythic: "#E85D4C",
 };
 
 export const RARITY_COLORS: Record<Tier, string> = {
@@ -27,10 +27,10 @@ export const RARITY_BG: Record<Tier, string> = {
 
 export const RARITY_EDGE: Record<Tier, string> = {
   Common: "border-rarity-common/40",
-  Rare: "border-rarity-rare/50 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]",
-  Epic: "border-rarity-epic/50 shadow-[0_0_0_1px_rgba(217,70,239,0.25)]",
-  Legendary: "border-rarity-legendary/55 shadow-[0_0_24px_rgba(251,191,36,0.18)]",
-  Mythic: "border-rarity-mythic/55 shadow-[0_0_28px_rgba(251,113,133,0.22)]",
+  Rare: "border-rarity-rare/50 shadow-[0_0_0_1px_rgba(91,164,201,0.2)]",
+  Epic: "border-rarity-epic/50 shadow-[0_0_0_1px_rgba(45,212,168,0.25)]",
+  Legendary: "border-rarity-legendary/55 shadow-[0_0_24px_rgba(224,184,74,0.2)]",
+  Mythic: "border-rarity-mythic/55 shadow-[0_0_28px_rgba(232,93,76,0.22)]",
 };
 
 export const RARITY_BAR: Record<Tier, string> = {

@@ -278,7 +278,7 @@ async fn sandbox_wrong_amount_rejected() -> anyhow::Result<()> {
         .await?
         .json()?;
     assert!(
-        packs.is_empty() || res.failed(),
+        packs.is_empty() || !res.failures().is_empty(),
         "wrong amount should not create packs"
     );
     Ok(())

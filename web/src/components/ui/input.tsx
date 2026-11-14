@@ -9,9 +9,9 @@ export const Input = forwardRef<
     <input
       ref={ref}
       className={cn(
-        "min-h-11 w-full rounded-sm border bg-subtle px-3 py-2.5 text-body text-primary outline-none transition duration-fast",
+        "min-h-11 w-full rounded-[var(--radius-btn)] border bg-subtle px-3 py-2.5 text-body text-primary outline-none transition-[border-color,box-shadow] duration-fast",
         "placeholder:text-muted",
-        "focus:border-brand focus:ring-2 focus:ring-brand/25",
+        "focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30",
         "disabled:cursor-not-allowed disabled:opacity-50",
         error ? "border-danger/60" : "border-border",
         className,
@@ -29,8 +29,8 @@ export const Select = forwardRef<
     <select
       ref={ref}
       className={cn(
-        "min-h-11 w-full rounded-sm border bg-subtle px-3 py-2.5 text-body text-primary outline-none transition duration-fast",
-        "focus:border-brand focus:ring-2 focus:ring-brand/25",
+        "min-h-11 w-full cursor-pointer rounded-[var(--radius-btn)] border bg-subtle px-3 py-2.5 text-body text-primary outline-none transition-[border-color,box-shadow] duration-fast",
+        "focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30",
         error ? "border-danger/60" : "border-border",
         className,
       )}
@@ -49,9 +49,10 @@ export const Textarea = forwardRef<
     <textarea
       ref={ref}
       className={cn(
-        "w-full rounded-sm border bg-subtle px-3 py-2.5 text-body text-primary outline-none transition duration-fast",
+        "min-h-[6.5rem] w-full resize-y rounded-[var(--radius-md)] border bg-subtle px-3.5 py-3 text-body leading-relaxed text-primary outline-none transition-[border-color,box-shadow] duration-fast",
         "placeholder:text-muted",
-        "focus:border-brand focus:ring-2 focus:ring-brand/25",
+        "focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30",
+        "disabled:cursor-not-allowed disabled:opacity-50",
         error ? "border-danger/60" : "border-border",
         className,
       )}

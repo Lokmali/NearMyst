@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useWalletSelector } from "@near-wallet-selector/react-hook";
 import { toast } from "sonner";
+import { useWalletReady } from "@/components/providers/wallet-provider";
 import type { MachineView, Pack, PackResult, PlatformConfig } from "@/lib/types";
 import {
   buildBuyMsg,
@@ -25,7 +26,7 @@ import {
   MAX_BUY_QUANTITY,
   validateQuantity,
 } from "@/lib/odds";
-import { formatTokenAmount } from "@/lib/format";
+import { formatTokenAmount, tokenSymbol } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NumberStepper } from "@/components/ui/number-stepper";
@@ -52,6 +53,7 @@ export function MachineActions({
   config: PlatformConfig | null;
 }) {
   const { signedAccountId, signIn, callFunction } = useWalletSelector();
+  const walletsReady = useWalletReady();
   const [qty, setQty] = useState(1);
   const [ftBal, setFtBal] = useState<string | null>(null);
   const [registered, setRegistered] = useState<boolean | null>(null);
@@ -164,13 +166,25 @@ export function MachineActions({
     if (qtyError) return qtyError;
     if (registered === false)
       return "Set up your account for this token first (one-time)";
-    if (lowBalance) return "Not enough tokens";
+    if (lowBalance)
+      return `Not enough ${tokenSymbol(machine.payment_token)}`;
     return null;
   }
 
   async function onBuy() {
     if (!signedAccountId) {
-      signIn();
+      if (!walletsReady) {
+        toast.message("Wallets still loading…", {
+          description: "Wait a second, then try again.",
+        });
+        return;
+      }
+      try {
+        await Promise.resolve(signIn());
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        toast.error("Couldn’t open wallet", { description: msg });
+      }
       return;
     }
     if (machine.status !== "Active") {
@@ -194,7 +208,9 @@ export function MachineActions({
       return;
     }
     if (ftBal != null && BigInt(ftBal) < price) {
-      toast.error("Not enough tokens. Get test tokens, then try again.");
+      toast.error(
+        `Not enough ${tokenSymbol(machine.payment_token)}. Get free ${tokenSymbol(machine.payment_token)}, then try again.`,
+      );
       return;
     }
     if (!confirmBuy) {
@@ -358,9 +374,9 @@ export function MachineActions({
         <p className="mt-1 text-caption text-muted">
           Pay with{" "}
           <TechTerm tip="Fungible token (FT) on NEAR — the demo payment token for this machine.">
-            tokens
+            {tokenSymbol(machine.payment_token)}
           </TechTerm>{" "}
-          from <span className="mono-id">{machine.payment_token}</span>
+          (<span className="mono-id">{machine.payment_token}</span>)
         </p>
 
         <PackFlowProgress current={flow} className="mt-4" />
@@ -391,7 +407,8 @@ export function MachineActions({
             <div>
               Total:{" "}
               <span className="font-semibold tabular text-primary">
-                {formatTokenAmount(price.toString())} tokens
+                {formatTokenAmount(price.toString())}{" "}
+                {tokenSymbol(machine.payment_token)}
               </span>
             </div>
             {config && (
@@ -420,6 +437,7 @@ export function MachineActions({
           <div className="mt-4 space-y-2">
             <SpendSummary
               pay={price.toString()}
+              symbol={tokenSymbol(machine.payment_token)}
               get={`${qty} mystery pack${qty === 1 ? "" : "s"}`}
               feeLabel={
                 config
@@ -462,7 +480,8 @@ export function MachineActions({
         )}
         {signedAccountId && ftBal != null && (
           <p className="mt-2 text-caption tabular text-muted" aria-live="polite">
-            Your balance: {formatTokenAmount(ftBal)} tokens
+            Your balance: {formatTokenAmount(ftBal)}{" "}
+            {tokenSymbol(machine.payment_token)}
           </p>
         )}
         {lowBalance && <GetTestTokensCard className="mt-4" />}
@@ -619,7 +638,8 @@ export function MachineActions({
         <div className="mx-auto flex max-w-container items-center gap-3">
           <div className="min-w-0 flex-1 text-caption text-secondary">
             <div className="truncate font-medium text-primary">
-              {formatTokenAmount(machine.pack_price)} tokens / pack
+              {formatTokenAmount(machine.pack_price)}{" "}
+              {tokenSymbol(machine.payment_token)} / pack
             </div>
             <div className="truncate">
               <AnimatedNumber value={machine.packs_remaining} /> left

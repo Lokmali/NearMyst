@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import type { MachineView, PlatformConfig } from "@/lib/types";
-import { formatTokenAmount } from "@/lib/format";
+import { formatTokenAmount, tokenSymbol } from "@/lib/format";
 import { oddsRows } from "@/lib/odds";
 import { TierBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -101,12 +101,18 @@ export function OddsTable({
                       <TierBadge tier={r.tier} />
                     </td>
                     <td className="py-3 pr-3 tabular text-primary">
-                      {formatTokenAmount(r.amount_per_win)}
+                      {formatTokenAmount(r.amount_per_win)}{" "}
+                      {tokenSymbol(r.token)}
                     </td>
                     <td className="py-3 pr-3 tabular">
                       {r.quantity_remaining}/{r.quantity_deposited}
                     </td>
-                    <td className="py-3 mono-id text-muted">{r.token}</td>
+                    <td className="py-3">
+                      <span className="font-medium text-secondary">
+                        {tokenSymbol(r.token)}
+                      </span>
+                      <span className="ml-1.5 mono-id text-muted">{r.token}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

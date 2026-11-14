@@ -17,7 +17,7 @@ export function ErrorPanel({
     <div
       role="alert"
       className={cn(
-        "rounded-lg border border-danger/25 bg-danger-tint p-4 text-small text-primary",
+        "rounded-[var(--radius-md)] border border-danger/25 bg-danger-tint p-4 text-small text-primary",
         className,
       )}
     >

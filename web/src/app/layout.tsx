@@ -1,27 +1,35 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Space_Grotesk, Inter } from "next/font/google";
+import { Fraunces, Source_Sans_3, DM_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { WalletProvider } from "@/components/providers/wallet-provider";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { PageTransition } from "@/components/motion/page-transition";
+import { SiteBackdrop } from "@/components/motion/site-backdrop";
+import { HashScroll } from "@/components/motion/hash-scroll";
 import { TxReturnHandler } from "@/components/wallet/tx-return-handler";
 import { NetworkMismatchBanner } from "@/components/wallet/network-banner";
 import "./globals.css";
 
-const display = Space_Grotesk({
-  variable: "--font-display",
+/* Lottery night: Fraunces display + Source Sans body; mono = DM Mono */
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
   display: "swap",
 });
 
-const body = Inter({
-  variable: "--font-body",
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  display: "swap",
+});
+
+const mono = DM_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
   display: "swap",
 });
 
@@ -35,6 +43,9 @@ export const metadata: Metadata = {
     template: "%s · NearMyst",
   },
   description: siteDescription,
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
   openGraph: {
     title: siteTitle,
     description: siteDescription,
@@ -45,7 +56,23 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
+    site: "@Near_Myst",
+    creator: "@Near_Myst",
   },
+  icons: {
+    icon: [{ url: "/brand/logo-v2.png", type: "image/png" }],
+    apple: [{ url: "/brand/logo-v2.png", type: "image/png" }],
+  },
+  other: {
+    "page-type": "software",
+    "site-kind": "gaming",
+    "color-scheme": "dark",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0C0A08",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({
@@ -54,11 +81,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${display.variable} ${body.variable} antialiased`}>
+    <html
+      lang="en"
+      data-type="software"
+      data-radius="soft"
+      data-buttons="block"
+      data-motion="on"
+      data-ground="sky"
+      className={`${fraunces.variable} ${sourceSans.variable} ${mono.variable}`}
+    >
+      <body className="antialiased">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-overlay focus:px-3 focus:py-2 focus:text-sm focus:text-primary"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-overlay focus:px-3 focus:py-2 focus:text-sm focus:text-primary"
         >
           Skip to content
         </a>
@@ -67,15 +102,16 @@ export default function RootLayout({
             <Suspense fallback={null}>
               <TxReturnHandler />
             </Suspense>
+            <HashScroll />
             <NetworkMismatchBanner />
-            <Header />
-            <main
-              id="main"
-              className="mx-auto min-h-[70vh] max-w-container px-4 py-8 pb-16 md:px-6 md:py-10"
-            >
-              <PageTransition>{children}</PageTransition>
-            </main>
-            <Footer />
+            <SiteBackdrop />
+            <div className="relative z-[1]">
+              <Header />
+              <main id="main" className="min-h-[70vh]">
+                <PageTransition>{children}</PageTransition>
+              </main>
+              <Footer />
+            </div>
             <Toaster
               theme="dark"
               position="bottom-right"

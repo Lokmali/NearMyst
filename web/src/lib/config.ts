@@ -20,6 +20,12 @@ export const EXPLORER_URL =
 
 export const PROBABILITY_DENOMINATOR = 10_000;
 
+/** Official social / support channels */
+export const SOCIAL_X_URL = "https://x.com/Near_Myst";
+export const SOCIAL_TELEGRAM_URL = "https://t.me/NearMyst";
+/** Support goes to Telegram */
+export const SUPPORT_URL = SOCIAL_TELEGRAM_URL;
+
 export function explorerTxUrl(txHash: string): string {
   return `${EXPLORER_URL}/txns/${txHash}`;
 }

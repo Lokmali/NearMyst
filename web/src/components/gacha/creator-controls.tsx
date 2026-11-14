@@ -112,7 +112,7 @@ export function CreatorControls({
   }
 
   return (
-    <Card className="border-brand/25 bg-brand-tint">
+    <Card className="border-border bg-raised/85 backdrop-blur-sm">
       <h3 className="text-h3 text-primary">Creator controls</h3>
       <p className="mt-1 text-caption text-secondary">
         On-chain actions for your machine. Earnings:{" "}

@@ -18,7 +18,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { Capsule } from "@/components/brand/capsule";
 import { FadeIn } from "@/components/motion/fade-in";
 import { getConfig, getMachine } from "@/lib/contract/client";
-import { formatTokenAmount, shortenAccount } from "@/lib/format";
+import { formatTokenAmount, shortenAccount, tokenSymbol } from "@/lib/format";
 import { highestTier } from "@/lib/odds";
 import type { MachineView, PlatformConfig } from "@/lib/types";
 
@@ -59,7 +59,12 @@ export default function MachineDetailPage() {
         } else {
           setMachine(m);
           setConfig(c);
-          setImgFailed(!m.image_url);
+          const url = m.image_url ?? "";
+          const badPlaceholder =
+            !url ||
+            url.includes("example.com") ||
+            url.includes(".example/");
+          setImgFailed(badPlaceholder);
         }
       } catch (e) {
         if (!cancelled) {
@@ -78,7 +83,7 @@ export default function MachineDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="page-wrap space-y-4 py-8 md:py-10">
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-10 w-64" />
         <div className="grid gap-3 sm:grid-cols-4">
@@ -93,21 +98,23 @@ export default function MachineDetailPage() {
 
   if (error || !machine) {
     return (
-      <ErrorPanel
-        message={error ?? "Machine unavailable"}
-        action={
-          <Link href="/explore" className="text-small text-brand underline">
-            ← Back to explore
-          </Link>
-        }
-      />
+      <div className="page-wrap py-8 md:py-10">
+        <ErrorPanel
+          message={error ?? "Machine unavailable"}
+          action={
+            <Link href="/explore" className="text-small text-brand underline">
+              ← Back to explore
+            </Link>
+          }
+        />
+      </div>
     );
   }
 
   const top = highestTier(machine);
 
   return (
-    <div className="space-y-8">
+    <div className="page-wrap space-y-10 py-8 md:py-10">
       <FadeIn>
         <nav className="text-caption text-muted">
           <Link href="/explore" className="hover:text-secondary">
@@ -117,31 +124,37 @@ export default function MachineDetailPage() {
           <span className="text-secondary">{machine.name}</span>
         </nav>
 
-        <div className="mt-4 flex flex-wrap items-start gap-5">
-          <div className="h-20 w-20 overflow-hidden rounded-lg border border-border bg-subtle">
+        <div className="mt-6 grid items-center gap-8 lg:grid-cols-12">
+          <div className="relative flex min-h-[220px] items-center justify-center lg:col-span-5">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-4 rounded-[40%] opacity-70 shadow-[inset_0_0_60px_rgba(224,184,74,0.22)]"
+            />
             {!imgFailed && machine.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={machine.image_url}
                 alt=""
-                className="h-full w-full object-cover"
+                className="relative z-[1] max-h-64 w-auto max-w-full object-contain"
                 onError={() => setImgFailed(true)}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <Capsule size="md" tier={top ?? undefined} />
-              </div>
+              <Capsule
+                size="xl"
+                tier={top ?? undefined}
+                className="relative z-[1] scale-[1.65]"
+              />
             )}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 lg:col-span-7">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-h1 text-primary">{machine.name}</h1>
               <StatusBadge status={machine.status} />
             </div>
-            <p className="mt-2 max-w-2xl prose-narrow text-small text-secondary">
+            <p className="mt-3 max-w-2xl prose-narrow text-body text-secondary">
               {machine.description}
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-caption text-muted">
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-caption text-muted">
               <span>Made by</span>
               <span className="mono-id text-secondary">
                 {shortenAccount(machine.creator, 6, 10)}
@@ -149,22 +162,24 @@ export default function MachineDetailPage() {
               <CopyButton value={machine.creator} iconOnly label="Copy creator" />
               <span className="text-border-strong">·</span>
               <span>Pays with</span>
-              <span className="mono-id text-secondary">{machine.payment_token}</span>
+              <span className="font-medium text-secondary">
+                {tokenSymbol(machine.payment_token)}
+              </span>
+              <span className="mono-id text-muted">{machine.payment_token}</span>
+            </div>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Stat
+                label="Price"
+                value={`${formatTokenAmount(machine.pack_price)} ${tokenSymbol(machine.payment_token)}`}
+              />
+              <Stat
+                label="Packs left"
+                value={`${machine.packs_remaining}/${machine.max_packs}`}
+              />
+              <Stat label="Sold" value={machine.packs_sold} />
+              <Stat label="Total packs" value={machine.max_packs} />
             </div>
           </div>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat
-            label="Price"
-            value={`${formatTokenAmount(machine.pack_price)} tokens`}
-          />
-          <Stat
-            label="Packs left"
-            value={`${machine.packs_remaining}/${machine.max_packs}`}
-          />
-          <Stat label="Sold" value={machine.packs_sold} />
-          <Stat label="Total packs" value={machine.max_packs} />
         </div>
       </FadeIn>
 

@@ -7,8 +7,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { Input, Select, Textarea } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
 import { ErrorPanel } from "@/components/ui/error-panel";
+import { TierBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   GAS_ACTIVATE,
@@ -23,6 +24,8 @@ import {
   type CreateRewardInput,
 } from "@/lib/contract/client";
 import { StorageRegisterPanel } from "@/components/gacha/storage-register";
+import { CreateMemeTokenPanel } from "@/components/ux/create-meme-token";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { GACHA_CONTRACT, explorerTxUrl } from "@/lib/config";
 import {
   percentToBps,
@@ -32,13 +35,25 @@ import {
   totalInventorySlots,
   validateTierSum,
 } from "@/lib/odds";
-import { formatTokenAmount } from "@/lib/format";
+import { formatTokenAmount, tokenSymbol } from "@/lib/format";
 import { extractCreateMachineId, extractTxHash } from "@/lib/tx";
 import type { PlatformConfig, Tier, TierConfig } from "@/lib/types";
 
 const TIERS: Tier[] = ["Common", "Rare", "Epic", "Legendary", "Mythic"];
 const DEFAULT_FT =
   process.env.NEXT_PUBLIC_DEFAULT_PAYMENT_TOKEN ?? "ft.nearmyst.testnet";
+
+/** Starter amount / slots when a tier is turned on in Odds. */
+const DEFAULT_REWARD_BY_TIER: Record<
+  Tier,
+  { amount_per_win: string; quantity: number }
+> = {
+  Common: { amount_per_win: "100", quantity: 6 },
+  Rare: { amount_per_win: "500", quantity: 3 },
+  Epic: { amount_per_win: "2000", quantity: 1 },
+  Legendary: { amount_per_win: "5000", quantity: 1 },
+  Mythic: { amount_per_win: "10000", quantity: 1 },
+};
 
 type RewardRow = {
   tier: Tier;
@@ -79,15 +94,11 @@ function flowStatus(
 }
 
 export default function CreatePage() {
-  const { signedAccountId, signIn, callFunction } = useWalletSelector();
+  const { signedAccountId, callFunction } = useWalletSelector();
   const [config, setConfig] = useState<PlatformConfig | null>(null);
-  const [name, setName] = useState("TESTNET DEMO Machine");
-  const [description, setDescription] = useState(
-    "TESTNET DEMO - FT rewards only. Not production secure.",
-  );
-  const [imageUrl, setImageUrl] = useState(
-    "https://example.com/nearmyst-testnet-demo.png",
-  );
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [paymentToken, setPaymentToken] = useState(DEFAULT_FT);
   const [packPrice, setPackPrice] = useState("1000");
   const [maxPacks, setMaxPacks] = useState(10);
@@ -113,6 +124,52 @@ export default function CreatePage() {
         toast.error(e instanceof Error ? e.message : "Failed to load get_config"),
       );
   }, []);
+
+  // Rewards always use the Basics payment token — no per-row token field.
+  useEffect(() => {
+    const token = paymentToken.trim() || DEFAULT_FT;
+    setRewards((rows) =>
+      rows.every((r) => r.token === token)
+        ? rows
+        : rows.map((r) => ({ ...r, token })),
+    );
+  }, [paymentToken]);
+
+  // Odds % > 0 → ensure a reward row; % = 0 → drop that tier’s rows.
+  useEffect(() => {
+    const token = paymentToken.trim() || DEFAULT_FT;
+    setRewards((rows) => {
+      let next = rows.filter((r) => (percents[r.tier] ?? 0) > 0);
+      for (const tier of TIERS) {
+        if ((percents[tier] ?? 0) <= 0) continue;
+        if (next.some((r) => r.tier === tier)) continue;
+        const defaults = DEFAULT_REWARD_BY_TIER[tier];
+        next = [
+          ...next,
+          {
+            tier,
+            token,
+            amount_per_win: defaults.amount_per_win,
+            quantity: defaults.quantity,
+          },
+        ];
+      }
+      // Keep tier order: Common → Mythic
+      next = next.toSorted(
+        (a, b) => TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier),
+      );
+      const same =
+        next.length === rows.length &&
+        next.every(
+          (r, i) =>
+            rows[i]?.tier === r.tier &&
+            rows[i]?.token === r.token &&
+            rows[i]?.amount_per_win === r.amount_per_win &&
+            rows[i]?.quantity === r.quantity,
+        );
+      return same ? rows : next;
+    });
+  }, [percents, paymentToken]);
 
   useEffect(() => {
     const ids = flowSteps.map((s) => s.id);
@@ -191,11 +248,9 @@ export default function CreatePage() {
     slots >= maxPacks &&
     maxPacks >= 1 &&
     BigInt(packPrice || "0") > 0n &&
+    paymentToken.trim().length > 0 &&
     rewards.every(
-      (r) =>
-        r.token.trim() &&
-        BigInt(r.amount_per_win || "0") > 0n &&
-        r.quantity >= 1,
+      (r) => BigInt(r.amount_per_win || "0") > 0n && r.quantity >= 1,
     ) &&
     step.id === "idle";
 
@@ -205,7 +260,7 @@ export default function CreatePage() {
 
   async function onSubmit() {
     if (!signedAccountId) {
-      signIn();
+      toast.message("Connect your wallet first");
       return;
     }
     if (tierError) {
@@ -219,8 +274,9 @@ export default function CreatePage() {
       return;
     }
 
+    const rewardToken = paymentToken.trim();
     const rewardInputs: CreateRewardInput[] = rewards.map((r) => ({
-      token: r.token.trim(),
+      token: rewardToken,
       amount_per_win: r.amount_per_win,
       tier: r.tier,
       quantity: r.quantity,
@@ -342,21 +398,19 @@ export default function CreatePage() {
   const busy = step.id !== "idle" && step.id !== "done" && step.id !== "error";
 
   return (
-    <div className="mx-auto max-w-container">
-      <div className="mb-8">
+    <div className="page-wrap py-8 md:py-10">
+      <div className="mb-10">
         <h1 className="text-h1 text-primary">Create a machine</h1>
-        <p className="mt-2 max-w-2xl prose-narrow text-small text-secondary">
+        <p className="mt-3 max-w-2xl prose-narrow text-body text-secondary">
           Guided setup: Basics → Rewards → Deposit → Activate. You’ll approve
           each step in your wallet. Testnet only — not real money.
         </p>
       </div>
 
       {!signedAccountId && (
-        <Card className="mb-6 border-warning/25 bg-warning-tint text-small text-secondary">
-          Connect your wallet to create. A wallet is your login for NEAR.{" "}
-          <button type="button" className="font-medium text-primary underline" onClick={() => signIn()}>
-            Connect Wallet
-          </button>
+        <Card className="mb-6 flex flex-wrap items-center justify-between gap-3 border-warning/25 bg-warning-tint text-small text-secondary">
+          <p>Connect your wallet to create. A wallet is your login for NEAR.</p>
+          <ConnectWalletButton size="sm" />
         </Card>
       )}
 
@@ -364,14 +418,14 @@ export default function CreatePage() {
         <StorageRegisterPanel
           className="mb-6"
           paymentToken={paymentToken.trim() || DEFAULT_FT}
-          rewardTokens={rewards.map((r) => r.token.trim()).filter(Boolean)}
+          rewardTokens={[paymentToken.trim()].filter(Boolean)}
         />
       )}
 
       {/* Mobile progress */}
       <nav
         aria-label="Create sections"
-        className="sticky top-16 z-20 -mx-4 mb-6 border-b border-border bg-base/90 px-4 py-2 backdrop-blur-md lg:hidden"
+        className="sticky top-16 z-20 mb-6 border border-border bg-base/95 px-3 py-2 shadow-card backdrop-blur-md lg:hidden"
       >
         <ol className="flex gap-1 overflow-x-auto">
           {flowSteps.map((s, i) => (
@@ -380,7 +434,7 @@ export default function CreatePage() {
                 type="button"
                 onClick={() => scrollToSection(s.id)}
                 className={cn(
-                  "min-h-10 whitespace-nowrap rounded-full px-3 text-caption font-medium transition",
+                  "min-h-10 whitespace-nowrap rounded-[var(--radius-btn)] px-3 text-caption font-medium transition",
                   activeSection === s.id
                     ? "bg-brand/15 text-primary"
                     : "text-muted hover:text-secondary",
@@ -430,14 +484,19 @@ export default function CreatePage() {
 
         <div className="min-w-0 max-w-3xl space-y-8">
           <Card id="sec-create" className="scroll-mt-28 space-y-4">
-            <div className="text-eyebrow text-muted">1 · Basics</div>
+            <h2 className="text-h3 text-primary">1 · Basics</h2>
             <h2 className="text-h3 text-primary">Name, price & odds</h2>
             <p className="text-caption text-muted">
               Example: “Neon Capsule Drop”, price 1000 tokens, 10 packs.
             </p>
             <label className="block text-small text-secondary">
               Name
-              <Input className="mt-1.5" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input
+                className="mt-1.5"
+                value={name}
+                placeholder="Mystery name"
+                onChange={(e) => setName(e.target.value)}
+              />
             </label>
             <label className="block text-small text-secondary">
               Description
@@ -445,6 +504,7 @@ export default function CreatePage() {
                 className="mt-1.5"
                 rows={3}
                 value={description}
+                placeholder="Mystery description"
                 onChange={(e) => setDescription(e.target.value)}
               />
             </label>
@@ -454,16 +514,19 @@ export default function CreatePage() {
             </label>
             <label className="block text-small text-secondary">
               Payment token{" "}
-              <span className="text-caption text-muted">(account id of the token people pay with)</span>
+              <span className="text-caption text-muted">
+                (account id · shows as {tokenSymbol(paymentToken.trim() || DEFAULT_FT)})
+              </span>
               <Input
                 className="mt-1.5"
                 value={paymentToken}
                 onChange={(e) => setPaymentToken(e.target.value)}
               />
             </label>
+            <CreateMemeTokenPanel compact className="mt-1" />
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-small text-secondary">
-                Pack price (token units)
+                Pack price ({tokenSymbol(paymentToken.trim() || DEFAULT_FT)} units)
                 <Input
                   className="mt-1.5 tabular"
                   value={packPrice}
@@ -529,113 +592,110 @@ export default function CreatePage() {
             </div>
           </Card>
 
-          <Card id="sec-deposit" className="scroll-mt-28 space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-eyebrow text-muted">2 · Rewards</div>
-                <h2 className="mt-1 text-h3 text-primary">What people can win</h2>
-                <p className="mt-1 text-caption text-muted">
-                  Fund prizes up front. Total reward slots must be at least max packs.
-                </p>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  setRewards((r) => [
-                    ...r,
-                    {
-                      tier: "Common",
-                      token: paymentToken,
-                      amount_per_win: "100",
-                      quantity: 1,
-                    },
-                  ])
-                }
-              >
-                Add reward
-              </Button>
+          <Card id="sec-deposit" className="scroll-mt-28 space-y-5">
+            <div>
+              <h2 className="text-h3 text-primary">2 · Rewards</h2>
+              <p className="mt-1.5 max-w-xl text-small text-secondary">
+                Set amount and slots for each odds tier. Paid in{" "}
+                <span className="font-medium text-primary">
+                  {tokenSymbol(paymentToken.trim() || DEFAULT_FT)}
+                </span>{" "}
+                from Basics.
+              </p>
             </div>
-            {rewards.map((r, i) => (
-              <div
-                key={i}
-                className="grid gap-3 rounded-md border border-border bg-subtle p-4 sm:grid-cols-2"
-              >
-                <label className="text-caption text-muted">
-                  Tier
-                  <Select
-                    className="mt-1.5"
-                    value={r.tier}
-                    onChange={(e) => updateReward(i, { tier: e.target.value as Tier })}
-                  >
-                    {TIERS.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </Select>
-                </label>
-                <label className="text-caption text-muted">
-                  Token
-                  <Input
-                    className="mt-1.5"
-                    value={r.token}
-                    onChange={(e) => updateReward(i, { token: e.target.value })}
-                  />
-                </label>
-                <label className="text-caption text-muted">
-                  Amount per win
-                  <Input
-                    className="mt-1.5 tabular"
-                    value={r.amount_per_win}
-                    onChange={(e) => updateReward(i, { amount_per_win: e.target.value })}
-                  />
-                </label>
-                <label className="text-caption text-muted">
-                  Quantity (slots)
-                  <Input
-                    type="number"
-                    min={1}
-                    className="mt-1.5 tabular"
-                    value={r.quantity}
-                    onChange={(e) => updateReward(i, { quantity: Number(e.target.value) })}
-                  />
-                </label>
-                <p className="sm:col-span-2 text-caption text-muted">
-                  Required deposit:{" "}
-                  <span className="tabular text-secondary">
-                    {formatTokenAmount(depositLines[i]?.amount.toString() ?? "0")} tokens
+
+            {rewards.length === 0 ? (
+              <p className="rounded-[var(--radius-md)] border border-dashed border-border bg-subtle/40 px-4 py-8 text-center text-small text-muted">
+                Set a % above 0 in Odds to add reward tiers here.
+              </p>
+            ) : (
+              <div className="overflow-hidden rounded-[var(--radius-md)] border border-border">
+                <div className="hidden grid-cols-[minmax(7rem,1.1fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(6rem,0.9fr)] gap-3 border-b border-border bg-subtle/80 px-4 py-2.5 text-caption font-medium text-muted md:grid">
+                  <span>Tier</span>
+                  <span>
+                    Amount / win ({tokenSymbol(paymentToken.trim() || DEFAULT_FT)})
                   </span>
-                  {rewards.length > 1 && (
-                    <button
-                      type="button"
-                      className="ml-3 text-danger underline"
-                      onClick={() =>
-                        setRewards((rows) => rows.filter((_, idx) => idx !== i))
-                      }
+                  <span>Slots</span>
+                  <span className="text-right">Deposit</span>
+                </div>
+                <ul className="divide-y divide-border">
+                  {rewards.map((r, i) => (
+                    <li
+                      key={r.tier}
+                      className="grid grid-cols-1 gap-3 px-4 py-3.5 md:grid-cols-[minmax(7rem,1.1fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(6rem,0.9fr)] md:items-center md:gap-3"
                     >
-                      Remove
-                    </button>
-                  )}
-                </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <TierBadge tier={r.tier} />
+                        <span className="text-caption tabular text-muted">
+                          {percents[r.tier]}%
+                        </span>
+                      </div>
+                      <label className="block min-w-0">
+                        <span className="mb-1.5 block text-caption text-muted md:sr-only">
+                          Amount / win
+                        </span>
+                        <Input
+                          className="tabular"
+                          inputMode="numeric"
+                          value={r.amount_per_win}
+                          onChange={(e) =>
+                            updateReward(i, { amount_per_win: e.target.value })
+                          }
+                          aria-label={`${r.tier} amount per win`}
+                        />
+                      </label>
+                      <label className="block min-w-0">
+                        <span className="mb-1.5 block text-caption text-muted md:sr-only">
+                          Slots
+                        </span>
+                        <Input
+                          type="number"
+                          min={1}
+                          className="tabular"
+                          value={r.quantity}
+                          onChange={(e) =>
+                            updateReward(i, {
+                              quantity: Number(e.target.value),
+                            })
+                          }
+                          aria-label={`${r.tier} quantity slots`}
+                        />
+                      </label>
+                      <p className="text-caption tabular text-secondary md:text-right">
+                        <span className="md:hidden">Deposit: </span>
+                        {formatTokenAmount(
+                          depositLines[i]?.amount.toString() ?? "0",
+                        )}{" "}
+                        {tokenSymbol(paymentToken.trim() || DEFAULT_FT)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            ))}
-            <p className="text-small text-secondary">
-              Inventory slots:{" "}
+            )}
+
+            <div
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border px-4 py-3 text-small",
+                slots >= maxPacks
+                  ? "border-success/30 bg-success-tint text-secondary"
+                  : "border-danger/30 bg-danger-tint text-secondary",
+              )}
+            >
+              <span>Inventory slots</span>
               <span
                 className={cn(
-                  "tabular font-medium",
+                  "tabular font-semibold",
                   slots >= maxPacks ? "text-success" : "text-danger",
                 )}
               >
-                {slots}
-              </span>{" "}
-              / need ≥ {maxPacks}
-            </p>
+                {slots} / need ≥ {maxPacks}
+              </span>
+            </div>
           </Card>
 
           <Card id="sec-verify" className="scroll-mt-28 text-small text-secondary">
-            <div className="text-eyebrow text-muted">3 · Deposit</div>
+            <h2 className="text-h3 text-primary">3 · Deposit</h2>
             <h2 className="mt-1 text-h3 text-primary">Costs before you sign</h2>
             <ul className="mt-3 list-disc space-y-1.5 pl-5">
               <li>
@@ -697,7 +757,7 @@ export default function CreatePage() {
           </Card>
 
           <Card id="sec-activate" className="scroll-mt-28 space-y-4">
-            <div className="text-eyebrow text-muted">4 · Activate</div>
+            <h2 className="text-h3 text-primary">4 · Activate</h2>
             <h2 className="text-h3 text-primary">Submit & go live</h2>
             <p className="text-caption text-muted">
               One click runs create → deposit rewards → verify → activate. Approve
@@ -729,24 +789,20 @@ export default function CreatePage() {
               </p>
             )}
 
-            <Button
-              className="w-full sm:w-auto"
-              loading={busy}
-              disabled={!canSubmit && !!signedAccountId}
-              onClick={() => {
-                if (!signedAccountId) {
-                  signIn();
-                  return;
-                }
-                void onSubmit();
-              }}
-            >
-              {!signedAccountId
-                ? "Connect to create"
-                : busy
-                  ? "Working…"
-                  : "Create & activate"}
-            </Button>
+            {!signedAccountId ? (
+              <ConnectWalletButton size="md" className="w-full sm:w-auto">
+                Connect to create
+              </ConnectWalletButton>
+            ) : (
+              <Button
+                className="w-full sm:w-auto"
+                loading={busy}
+                disabled={!canSubmit}
+                onClick={() => void onSubmit()}
+              >
+                {busy ? "Working…" : "Create & activate"}
+              </Button>
+            )}
             {signedAccountId && !canSubmit && !busy && (
               <p className="text-caption text-muted">
                 {tierError

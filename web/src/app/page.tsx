@@ -1,168 +1,159 @@
+import Image from "next/image";
 import Link from "next/link";
-import { GachaIllustration } from "@/components/gacha/gacha-illustration";
 import { MachineCard } from "@/components/gacha/machine-card";
-import { Button } from "@/components/ui/button";
+import { FaqAccordion } from "@/components/home/faq-accordion";
+import { HowBento } from "@/components/home/how-bento";
+import { RarityStrip } from "@/components/home/rarity-strip";
+import { ClosingCta } from "@/components/home/closing-cta";
+import { ButtonLink } from "@/components/ui/button";
 import { Disclaimer } from "@/components/ui/disclaimer";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorPanel } from "@/components/ui/error-panel";
-import { FadeIn, Stagger, StaggerItem } from "@/components/motion/fade-in";
-import { HeroBackdrop } from "@/components/motion/hero-backdrop";
+import { FadeIn } from "@/components/motion/fade-in";
+import { IrisSection } from "@/components/motion/iris-section";
+import { CounterRolls } from "@/components/motion/counter-rolls";
 import { OnboardingChecklist } from "@/components/ux/onboarding-checklist";
 import { getConfig, listMachines } from "@/lib/contract/client";
-import { Wallet, Package, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Near.com-style structure: brand → one line → CTAs → one product panel.
+ * Theme stays brass lottery-night.
+ */
 export default async function HomePage() {
   let machines: Awaited<ReturnType<typeof listMachines>> = [];
+  let allActive = 0;
+  let packsLeft = 0;
   let loadError: string | null = null;
 
   try {
-    const [list] = await Promise.all([listMachines(0, 6), getConfig()]);
-    machines = list.filter((m) => m.status === "Active").slice(0, 3);
-    if (machines.length === 0) machines = list.slice(0, 3);
+    const [list] = await Promise.all([listMachines(0, 50), getConfig()]);
+    const active = list.filter((m) => m.status === "Active");
+    allActive = active.length;
+    packsLeft = active.reduce((sum, m) => sum + m.packs_remaining, 0);
+    machines = active.slice(0, 3);
   } catch (e) {
     loadError = e instanceof Error ? e.message : String(e);
   }
 
-  const steps = [
-    {
-      n: "1",
-      icon: Wallet,
-      t: "Connect a wallet",
-      d: "A wallet is your login for NEAR. You’ll approve each action in it — nothing happens without your OK.",
-    },
-    {
-      n: "2",
-      icon: Package,
-      t: "Pick a machine",
-      d: "Choose a mystery pack machine, check the odds, and buy a pack with test tokens.",
-    },
-    {
-      n: "3",
-      icon: Sparkles,
-      t: "Open your pack",
-      d: "Wait a moment, open the pack, and see your reward. Results come from the blockchain — not a fake spin.",
-    },
-  ];
+  const featured = machines[0] ?? null;
 
   return (
-    <div className="space-y-16 pb-8 md:space-y-24">
-      <OnboardingChecklist />
-
-      <section className="relative grid items-center gap-10 lg:grid-cols-2">
-        <HeroBackdrop />
-        <FadeIn>
-          <p className="text-eyebrow">NearMyst · NEAR testnet demo</p>
-          <h1 className="mt-3 text-display text-primary">
-            Mystery packs.{" "}
-            <span className="text-gradient">On-chain odds.</span>
-          </h1>
-          <p className="mt-4 max-w-xl prose-narrow text-body text-secondary">
-            NearMyst lets you buy mystery packs and open them for token rewards.
-            Creators fund the prizes up front so every pack can pay out.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/explore">
-              <Button size="lg">Explore machines</Button>
-            </Link>
-            <Link href="/#how">
-              <Button variant="secondary" size="lg">
-                How it works
-              </Button>
-            </Link>
-          </div>
-          <p className="mt-4 text-caption text-muted">
-            New to crypto? You’ll connect a NEAR wallet (like a secure login), then
-            use free test tokens — not real money.
-          </p>
-        </FadeIn>
-        <FadeIn delay={0.08} y={12}>
-          <div className="mx-auto h-[320px] w-full max-w-md sm:h-[380px]">
-            <GachaIllustration className="h-full w-full" />
-          </div>
-        </FadeIn>
-      </section>
-
-      <Disclaimer>
-        <strong className="font-medium text-primary">Is this real money?</strong>{" "}
-        No — testnet demo with test tokens only. Pack outcomes use testnet block
-        randomness (not VRF); block producers can influence it. Mainnet would need
-        VRF or an oracle. No audit.
-      </Disclaimer>
-
-      <section id="how" className="scroll-mt-24">
-        <FadeIn>
-          <h2 className="text-h2 text-primary">How it works</h2>
-          <p className="mt-1 max-w-2xl prose-narrow text-small text-secondary">
-            Three steps. You approve each one in your wallet.
-          </p>
-        </FadeIn>
-        <Stagger className="relative mt-8 grid gap-6 sm:grid-cols-3">
-          <div
+    <>
+      <section className="relative" data-enter>
+        <div className="page-wrap flex flex-col items-center pb-4 pt-4 text-center md:pb-6 md:pt-6">
+          <Image
+            src="/brand/logo-v2.png"
+            alt=""
+            width={88}
+            height={88}
+            priority
+            className="mb-5 h-20 w-20 rounded-2xl object-cover border border-brand/70 md:mb-6 md:h-[5.5rem] md:w-[5.5rem]"
             aria-hidden
-            className="pointer-events-none absolute left-0 right-0 top-8 hidden h-px bg-border sm:block"
           />
-          {steps.map((step) => (
-            <StaggerItem key={step.n}>
-              <div className="relative h-full rounded-lg border border-border bg-raised p-5 shadow-card md:p-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-subtle text-brand">
-                  <step.icon className="h-4 w-4" strokeWidth={1.75} />
-                </div>
-                <div className="mt-4 text-eyebrow text-muted">Step {step.n}</div>
-                <h3 className="mt-2 text-h3 text-primary">{step.t}</h3>
-                <p className="mt-2 text-small leading-relaxed text-secondary">
-                  {step.d}
-                </p>
-              </div>
-            </StaggerItem>
-          ))}
-        </Stagger>
+          <h1 className="max-w-[14ch] text-display text-primary">NearMyst</h1>
+          <p className="mx-auto mt-4 max-w-xl text-body text-secondary md:mt-5 md:text-[1.0625rem] md:leading-7">
+            Buy a pack, wait one block, shake open the mystery trunk, and take
+            the FT reward — odds and inventory on-chain. Free demo tokens. Not
+            real money.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <ButtonLink href="/explore" size="lg">
+              Explore machines
+            </ButtonLink>
+            <ButtonLink href="#how" variant="secondary" size="lg">
+              How it works
+            </ButtonLink>
+          </div>
+        </div>
       </section>
 
-      <section>
-        <FadeIn>
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-h2 text-primary">Try a machine</h2>
-              <p className="mt-1 text-small text-secondary">
-                Live machines from the contract — pick one and buy a pack.
-              </p>
-            </div>
-            <Link
-              href="/explore"
-              className="text-small text-brand transition hover:text-brand-hover"
-            >
-              View all →
-            </Link>
+      <div className="page-wrap space-y-6 pb-10 pt-4 md:space-y-8 md:pb-12 md:pt-5">
+        <Disclaimer>
+          <strong className="font-medium text-primary">Is this real money?</strong>{" "}
+          No — testnet demo with test tokens only. Pack outcomes use testnet
+          block randomness (not VRF); block producers can influence it. Mainnet
+          would need VRF or an oracle. No audit.
+        </Disclaimer>
+        <OnboardingChecklist />
+        <p className="text-body text-secondary">
+          Live on testnet:{" "}
+          <span className="text-primary">
+            <CounterRolls value={allActive} /> active machine
+            {allActive === 1 ? "" : "s"}
+          </span>
+          {" · "}
+          <span className="text-primary">
+            <CounterRolls value={packsLeft} /> packs remaining
+          </span>
+          .
+        </p>
+      </div>
+
+      <div className="page-wrap py-16 md:py-24">
+        <HowBento />
+      </div>
+
+      {featured ? (
+        <div className="page-wrap py-16 md:py-20">
+          <RarityStrip machine={featured} />
+        </div>
+      ) : null}
+
+      <IrisSection id="featured">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-h2 text-primary">Featured machines</h2>
+            <p className="mt-2 text-small text-secondary">
+              Active machines from the contract.
+            </p>
           </div>
-        </FadeIn>
-        {loadError && (
+          <Link
+            href="/explore"
+            className="inline-flex min-h-11 items-center text-small font-medium text-brand hover:text-brand-hover"
+          >
+            View all
+          </Link>
+        </div>
+        {loadError ? (
           <ErrorPanel
-            className="mt-4"
-            message={`We couldn’t load machines. Check your connection and try again.`}
+            className="mt-8"
+            message="We couldn’t load machines. Check your connection and try again."
           />
-        )}
-        {!loadError && machines.length === 0 && (
+        ) : null}
+        {!loadError && machines.length === 0 ? (
           <EmptyState
-            className="mt-4"
-            title="No machines yet"
-            description="Be the first to create one, or check back soon."
+            className="mt-8"
+            title="No active machines yet"
+            description="Create one, or check back after seeding."
             action={
-              <Link href="/create">
-                <Button>Create a machine</Button>
-              </Link>
+              <ButtonLink href="/create">Create a machine</ButtonLink>
             }
           />
-        )}
-        <Stagger className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {machines.map((m) => (
-            <StaggerItem key={m.id}>
-              <MachineCard machine={m} />
-            </StaggerItem>
-          ))}
-        </Stagger>
+        ) : null}
+        {!loadError && machines.length > 0 ? (
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {machines.map((m) => (
+              <MachineCard key={m.id} machine={m} />
+            ))}
+          </div>
+        ) : null}
+      </IrisSection>
+
+      <section id="faq" className="page-wrap scroll-mt-24 py-16 md:py-24">
+        <FadeIn>
+          <h2 className="text-h2 text-primary">FAQ</h2>
+          <p className="mt-2 text-small text-secondary">
+            Straight answers for first-time visitors.
+          </p>
+        </FadeIn>
+        <div className="mt-8 max-w-3xl">
+          <FaqAccordion />
+        </div>
       </section>
-    </div>
+
+      <ClosingCta />
+    </>
   );
 }

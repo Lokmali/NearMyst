@@ -37,7 +37,7 @@ export function Tabs({
     <div
       role="tablist"
       onKeyDown={onKeyDown}
-      className="flex flex-wrap gap-1 border-b border-border"
+      className="flex flex-wrap gap-x-1 gap-y-1 border-b border-border"
     >
       {tabs.map((t) => {
         const active = t.id === value;
@@ -50,22 +50,31 @@ export function Tabs({
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(t.id)}
             className={cn(
-              "relative min-h-11 px-3 py-2.5 text-small font-medium transition duration-fast",
-              active ? "text-primary" : "text-muted hover:text-secondary",
+              "relative inline-flex min-h-11 items-center gap-2 px-3.5 py-2.5 text-small font-semibold tracking-tight transition duration-fast",
+              active ? "text-primary" : "text-secondary hover:text-primary",
             )}
           >
-            {t.label}
-            {typeof t.count === "number" && (
-              <span className="ml-1.5 tabular text-caption text-muted">{t.count}</span>
-            )}
-            {active && (
+            <span>{t.label}</span>
+            {typeof t.count === "number" ? (
+              <span
+                className={cn(
+                  "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular leading-none",
+                  active
+                    ? "bg-brand/20 text-brand"
+                    : "bg-subtle text-muted",
+                )}
+              >
+                {t.count}
+              </span>
+            ) : null}
+            {active ? (
               <motion.span
                 layoutId={reduced ? undefined : layoutId}
                 className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-brand"
                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 style={reduced ? { transitionDuration: "0ms" } : undefined}
               />
-            )}
+            ) : null}
           </button>
         );
       })}

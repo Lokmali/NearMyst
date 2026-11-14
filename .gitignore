@@ -7,15 +7,15 @@
 **/credentials/
 **/.near-credentials/
 
-# E2E / seed runtime artifacts
+# E2E / seed runtime artifacts (keep static fixtures like scripts/init-args.json)
 scripts/e2e-last-run.log
 scripts/seed-last-run.log
 scripts/e2e-args/*.runtime.json
 scripts/e2e-args/bal-*.json
 scripts/seed-args/*.json
+!scripts/seed-args/.gitkeep
 new-args.json
 **/new-args.json
-*-args.json
 
 # Rust / WASM build output
 **/target/
@@ -36,6 +36,19 @@ npm-debug.log*
 web/.vercel/
 .deploy-args/
 
+# Local AI / editor tooling (do not ship in the public repo)
+.agents/
+.cursor/
+.codex/
+.claude/
+.taste-skill/
+.impeccable-src/
+.github/skills/
+.github/agents/
+.github/hooks/
+skills-lock.json
+design-system/
+
 # OS / IDE
 .DS_Store
 Thumbs.db
@@ -44,4 +57,3 @@ Thumbs.db
 *.swp
 *.swo
 Desktop.ini
-
